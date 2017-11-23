@@ -20,13 +20,11 @@ before_build:
 
 # VS2017
 - call "%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Community\Common7\Tools\vsdevcmd" -arch=x64
-- set make=nmake.exe
-- %make% /? > nul
 
 build_script:
 - cd %APPVEYOR_BUILD_FOLDER%
 - qmake -r VERSION=%APPVEYOR_BUILD_VERSION%
-- '%make%'
+- nmake.exe
 
 after_build:
 - xcopy %QT5%\bin\Qt5Core.dll %APPVEYOR_BUILD_FOLDER%\release\ /y
