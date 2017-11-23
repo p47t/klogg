@@ -90,7 +90,7 @@ class Marks {
         const_iterator& operator--()
         { --internal_iter_ ; return *this; }
 
-        int operator-( const const_iterator& other ) const
+        const_iterator::difference_type operator-( const const_iterator& other ) const
         { return ( internal_iter_ - other.internal_iter_ ); }
 
         const_iterator operator+(int n) const
