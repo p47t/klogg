@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
           externalInstance = shared_ptr<ExternalInstance>( ptr );
         }
     }
-    catch(CantCreateExternalErr& e) {
+    catch(const CantCreateExternalErr&) {
         LOG(logWARNING) << "Cannot initialise external communication.";
     }
 

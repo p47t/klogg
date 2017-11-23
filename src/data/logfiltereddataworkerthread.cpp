@@ -96,7 +96,7 @@ LineNumber SearchData::getNbMatches() const
 {
     QMutexLocker locker( &dataMutex_ );
 
-    return matches_.size();
+    return static_cast<LineNumber>( matches_.size() );
 }
 
 // This function starts searching from the end since we use it
@@ -300,7 +300,7 @@ void SearchOperation::doSearch( SearchData& searchData, qint64 initialLine )
                 auto result = f.result();
                 currentList.insert(currentList.end(), result.matchingLines.begin(), result.matchingLines.end());
                 maxLength = qMax(maxLength, f.result().maxLength);
-                nbMatches += f.result().matchingLines.size();
+                nbMatches += static_cast<int>( f.result().matchingLines.size() );
             }
             std::sort(currentList.begin(), currentList.end());
         }
@@ -308,7 +308,7 @@ void SearchOperation::doSearch( SearchData& searchData, qint64 initialLine )
             auto matchResults = filterLines(regexp_, lines, chunkStart, 0, 1);
             currentList = std::move(matchResults.matchingLines);
             maxLength = qMax(maxLength, matchResults.maxLength);
-            nbMatches += currentList.size();
+            nbMatches += static_cast<int>( currentList.size() );
         }
 
         // After each block, copy the data to shared data

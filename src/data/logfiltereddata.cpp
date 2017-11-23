@@ -117,7 +117,7 @@ void LogFilteredData::runSearch(const QRegularExpression& regExp,
             shouldRunSearch = false;
             matching_lines_ = cachedResults.value().matching_lines;
             maxLength_ = cachedResults.value().maxLength;
-            emit searchProgressed( matching_lines_.size(), 100 );
+            emit searchProgressed( static_cast<int>( matching_lines_.size() ), 100 );
         }
     }
 
@@ -181,7 +181,7 @@ LineNumber LogFilteredData::getNbTotalLines() const
 
 LineNumber LogFilteredData::getNbMatches() const
 {
-    return matching_lines_.size();
+    return static_cast<int>( matching_lines_.size() );
 }
 
 LineNumber LogFilteredData::getNbMarks() const
@@ -517,10 +517,10 @@ void LogFilteredData::regenerateFilteredItemsCache() const
     Marks::const_iterator j = marks_.begin();
 
     while ( ( i != matching_lines_.cend() ) || ( j != marks_.end() ) ) {
-        qint64 next_mark =
-            ( j != marks_.end() ) ? j->lineNumber() : (std::numeric_limits<qint64>::max)();
-        qint64 next_match =
-            ( i != matching_lines_.cend() ) ? i->lineNumber() : (std::numeric_limits<qint64>::max)();
+        LineNumber next_mark =
+            ( j != marks_.end() ) ? j->lineNumber() : (std::numeric_limits<LineNumber>::max)();
+        LineNumber next_match =
+            ( i != matching_lines_.cend() ) ? i->lineNumber() : (std::numeric_limits<LineNumber>::max)();
         // We choose a Mark over a Match if a line is both, just an arbitrary choice really.
         if ( next_mark <= next_match ) {
             // LOG(logDEBUG) << "Add mark at " << next_mark;

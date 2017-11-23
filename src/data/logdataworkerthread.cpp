@@ -189,7 +189,7 @@ void LogDataWorkerThread::run()
                     emit indexingFinished( LoadingStatus::Interrupted );
                 }
             }
-            catch ( std::bad_alloc& ba ) {
+            catch ( std::bad_alloc& ) {
                 LOG(logERROR) << "Out of memory whilst indexing!";
                 emit indexingFinished( LoadingStatus::NoMemory );
             }

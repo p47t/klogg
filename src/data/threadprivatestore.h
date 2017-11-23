@@ -65,7 +65,7 @@ class ThreadPrivateStore
 
     int threadIndex() const {
 
-        const int thread_id = std::hash<Qt::HANDLE>()( QThread::currentThreadId() );
+        const int thread_id = static_cast<int>( std::hash<Qt::HANDLE>()( QThread::currentThreadId() ) );
 
         int i;
         for ( i=0; thread_ids_[i]; ++i ) {
@@ -74,7 +74,7 @@ class ThreadPrivateStore
 
         // Current thread is missing, let's add it
         while ( i < MAX_THREADS ) {
-            size_t expected = 0;
+            int expected = 0;
             if ( thread_ids_[i++].testAndSetOrdered( expected, thread_id ) ) {
                 LOG(logDEBUG) << "Created thread for " << thread_id << " at index " << i-1;
                 return i-1;

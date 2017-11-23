@@ -244,7 +244,8 @@ void WinWatchTowerDriver::serialisedAddDir(
     auto dir_record = std::make_shared<WinWatchedDirRecord>( dir_name );
     // The index we will be inserting this record (if success), plus 1 (to avoid
     // 0 which is used as a magic value)
-    unsigned int index_record = dir_records_.size() + 1;
+    Q_ASSUME( dir_records_.size() < UINT32_MAX );
+    unsigned int index_record = static_cast<unsigned int>( dir_records_.size() ) + 1;
 
     LOG(logDEBUG) << "Adding dir for: " << dir_name;
 

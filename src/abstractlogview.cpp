@@ -1069,14 +1069,14 @@ void AbstractLogView::saveToFile()
     QObject::connect( &progressDialog, &QProgressDialog::canceled,
                       &futureWatcher, &QFutureWatcher<void>::cancel );
 
-    std::vector<std::pair<qint64, int>> offsets;
+    std::vector<std::pair<qint64, quint32>> offsets;
     qint64 lineOffset = 0;
-    const int chunkSize = 5000;
+    const quint32 chunkSize = 5000;
 
     for ( lineOffset = 0; lineOffset + chunkSize < totalLines; lineOffset += chunkSize ) {
        offsets.emplace_back( lineOffset, chunkSize );
     }
-    offsets.emplace_back( lineOffset, totalLines % chunkSize );
+    offsets.emplace_back( lineOffset, static_cast<quint32>( totalLines % chunkSize ) );
 
     auto writeLines = [this, &outStream, &progressDialog](const std::pair<qint64, int>& offset) {
         QStringList lines = logData->getLines( offset.first, offset.second );

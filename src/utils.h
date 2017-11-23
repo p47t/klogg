@@ -38,7 +38,8 @@ template <typename T> bool lookupLineNumber(
         const T& list, qint64 lineNumber, int* foundIndex )
 {
     int minIndex = 0;
-    int maxIndex = list.size() - 1;
+    Q_ASSUME(list.size() <= (std::numeric_limits<int>::max)());
+    int maxIndex = static_cast<int>( list.size() ) - 1;
     // If the list is not empty
     if ( maxIndex - minIndex >= 0 ) {
         // First we test the ends
@@ -86,7 +87,7 @@ template<typename Iterator>
 LineNumber lookupLineNumber( Iterator begin, Iterator end, LineNumber lineNum )
 {
     Iterator lowerBound = std::lower_bound( begin, end, lineNum );
-    return std::distance(begin, lowerBound);
+    return static_cast<int>( std::distance(begin, lowerBound) );
 }
 
 // Represents a position in a file (line, column)
@@ -105,20 +106,5 @@ class FilePosition
     qint64 line_;
     int column_;
 };
-
-#ifndef HAVE_MAKE_UNIQUE
-#include <memory>
-
-namespace std {
-template<typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args) {
-        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-}
-#endif
-
-#ifndef HAVE_OVERRIDE
-#define override
-#endif
 
 #endif
