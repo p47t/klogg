@@ -39,6 +39,8 @@
 #include "nsCharSetProber.h"
 #include "prmem.h"
 
+#include "gsl/gsl_util"
+
 //This filter applies to all scripts which do not use English characters
 PRBool nsCharSetProber::FilterWithoutEnglishLetters(const char* aBuf, PRUint32 aLen, char** newBuf, PRUint32& newLen)
 {
@@ -74,7 +76,7 @@ PRBool nsCharSetProber::FilterWithoutEnglishLetters(const char* aBuf, PRUint32 a
   if (meetMSB && curPtr > prevPtr) 
     while (prevPtr < curPtr) *newptr++ = *prevPtr++;  
 
-  newLen = newptr - *newBuf;
+  newLen =  gsl::narrow_cast<PRUint32>(newptr - *newBuf);
 
   return PR_TRUE;
 }
@@ -119,7 +121,7 @@ PRBool nsCharSetProber::FilterWithEnglishLetters(const char* aBuf, PRUint32 aLen
     while (prevPtr < curPtr)
       *newptr++ = *prevPtr++;  
 
-  newLen = newptr - *newBuf;
+  newLen = gsl::narrow_cast<PRUint32>(newptr - *newBuf);
 
   return PR_TRUE;
 }
