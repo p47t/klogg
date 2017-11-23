@@ -114,7 +114,7 @@ namespace {
 template <typename Driver>
 WatchTower<Driver>::WatchTower()
     : driver_(),
-    heartBeat_(std::shared_ptr<void>((void*) 0xDEADC0DE, [] (void*) {}))
+    heartBeat_(std::shared_ptr<void>((void*) 0xDEADC0DEull, [] (void*) {}))
 {
     setAutoDelete(false);
     running_.set();

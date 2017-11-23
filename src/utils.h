@@ -86,7 +86,7 @@ template <typename T> bool lookupLineNumber(
 template<typename Iterator>
 LineNumber lookupLineNumber( Iterator begin, Iterator end, LineNumber lineNum )
 {
-    Iterator lowerBound = std::lower_bound( begin, end, lineNum );
+    const auto lowerBound = std::lower_bound( begin, end, lineNum );
     return static_cast<int>( std::distance(begin, lowerBound) );
 }
 

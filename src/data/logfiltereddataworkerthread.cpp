@@ -45,7 +45,7 @@ namespace
             const auto& l = lines.at(i);
             if (regex.match(l).hasMatch()) {
                 results.maxLength = qMax(results.maxLength, AbstractLogData::getUntabifiedLength(l));
-                results.matchingLines.emplace_back(chunkStart + i);
+                results.matchingLines.emplace_back( static_cast<LineNumber>( chunkStart + i) );
             }
         }
         return results;

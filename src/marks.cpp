@@ -41,7 +41,7 @@ void Marks::addMark( qint64 line, QChar mark )
         // If a mark is not already set for this line
         LOG(logDEBUG) << "Inserting mark at line " << line
             << " (index " << index << ")";
-        marks_.emplace( marks_.begin() + index,  line );
+        marks_.emplace( marks_.begin() + index,  static_cast<int>( line ) );
     }
     else
     {

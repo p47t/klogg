@@ -104,7 +104,7 @@ template<typename Driver>
 class ObservedFileList {
     public:
         ObservedFileList() :
-            heartBeat_ { std::shared_ptr<void>((void*) 0x00DEADC0DE, [] (void*) {}) }
+            heartBeat_ { std::shared_ptr<void>((void*) 0xDEADC0DEull, [] (void*) {}) }
             { }
         ~ObservedFileList() = default;
 

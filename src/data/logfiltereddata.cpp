@@ -176,17 +176,17 @@ bool LogFilteredData::isLineInMatchingList( qint64 lineNumber )
 
 LineNumber LogFilteredData::getNbTotalLines() const
 {
-    return sourceLogData_->getNbLine();
+    return static_cast<LineNumber>( sourceLogData_->getNbLine() );
 }
 
 LineNumber LogFilteredData::getNbMatches() const
 {
-    return static_cast<int>( matching_lines_.size() );
+    return static_cast<LineNumber>( matching_lines_.size() );
 }
 
 LineNumber LogFilteredData::getNbMarks() const
 {
-    return marks_.size();
+    return static_cast<LineNumber>( marks_.size() );
 }
 
 LogFilteredData::FilteredLineType
