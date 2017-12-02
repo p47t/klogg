@@ -95,6 +95,7 @@ TEST_F( LogDataChanging, changingFile ) {
     ASSERT_THAT( log_data.getMaxLength().get(), SL_LINE_LENGTH );
     ASSERT_THAT( log_data.getFileSize(), 200 * (SL_LINE_LENGTH+1LL) );
 
+#ifndef _WIN32
 	auto finishedSpyCount = finishedSpy.count();
     // Add some data to it
     if ( file.isOpen() ) {
@@ -159,6 +160,7 @@ TEST_F( LogDataChanging, changingFile ) {
         ASSERT_THAT( log_data.getMaxLength().get(), 0 );
         ASSERT_THAT( log_data.getFileSize(), 0LL );
     }
+#endif
 }
 
 class LogDataBehaviour : public testing::Test {
