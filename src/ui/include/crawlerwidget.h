@@ -243,7 +243,7 @@ class CrawlerWidget : public QSplitter,
     void replaceCurrentSearch( const QString& searchText );
     void updateSearchCombo();
     AbstractLogView* activeView() const;
-    void printSearchInfoMessage(LinesCount nbMatches = 0_count );
+    void printSearchInfoMessage(LinesCount nbMatches = 0_lcount );
     void changeDataStatus( DataStatus status );
     void updateEncoding();
     void changeTopViewSize( int32_t delta );

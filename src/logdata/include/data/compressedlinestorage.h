@@ -93,7 +93,6 @@ class CompressedLinePositionStorage
         , long_block_index_ {0}
         , first_long_line_{std::numeric_limits<LineNumber::UnderlyingType>::max()}
     {
-        LOG(logINFO) << "CompressedLinePositionStorage construct: " << block_offset_.get();
     }
 
     // Copy constructor would be slow, delete!

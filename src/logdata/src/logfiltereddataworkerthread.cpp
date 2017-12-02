@@ -45,7 +45,7 @@ namespace
             const auto& l = lines.at(i);
             if (regex.match(l).hasMatch()) {
                 results.maxLength = qMax(results.maxLength, AbstractLogData::getUntabifiedLength(l));
-                results.matchingLines.emplace_back(chunkStart + LineNumber(i));
+                results.matchingLines.emplace_back(chunkStart + LinesCount(i));
             }
         }
         return results;
@@ -275,9 +275,9 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
         initialLine = startLine_;
     }
 
-    const auto endLine = qMin(LineNumber(nbSourceLines.get()), endLine_);
+    const auto endLine = qMin( LineNumber( nbSourceLines.get() ), endLine_ );
 
-    for ( auto chunkStart = initialLine; chunkStart < endLine; chunkStart = chunkStart + LineNumber( nbLinesInChunk.get() ) ) {
+    for ( auto chunkStart = initialLine; chunkStart < endLine; chunkStart = chunkStart + nbLinesInChunk ) {
         if ( *interruptRequested_ )
             break;
 
@@ -327,7 +327,7 @@ void FullSearchOperation::start( SearchData& searchData )
     // Clear the shared data
     searchData.clear();
 
-    doSearch( searchData, LineNumber( 0 ) );
+    doSearch( searchData, 0_lnum );
 }
 
 // Called in the worker thread's context

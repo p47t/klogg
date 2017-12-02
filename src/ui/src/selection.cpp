@@ -32,7 +32,7 @@ Selection::Selection()
     selectedPartial_.startColumn = 0;
     selectedPartial_.endColumn   = 0;
 
-    selectedRange_.endLine   = 0_number;
+    selectedRange_.endLine   = 0_lnum;
 }
 
 void Selection::selectPortion( LineNumber line, int start_column, int end_column )
@@ -69,7 +69,7 @@ void Selection::selectRangeFromPrevious( LineNumber line )
     else if ( selectedPartial_.line.has_value() )
         previous_line = *selectedPartial_.line;
     else
-        previous_line = 0_number;
+        previous_line = 0_lnum;
 
     selectRange( previous_line, line );
 }
@@ -166,10 +166,10 @@ FilePosition Selection::getNextPosition() const
     int column = 0;
 
     if ( selectedLine_.has_value() ) {
-        line = *selectedLine_ + 1_number;
+        line = *selectedLine_ + 1_lcount;
     }
     else if ( selectedRange_.startLine.has_value() ) {
-        line = selectedRange_.endLine + 1_number;
+        line = selectedRange_.endLine + 1_lcount;
     }
     else if ( selectedPartial_.line.has_value() ) {
         line   = *selectedPartial_.line;

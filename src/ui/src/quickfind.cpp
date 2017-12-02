@@ -263,7 +263,7 @@ OptionalLineNumber QuickFind::doSearchForward( const FilePosition &start_positio
         // And then the rest of the file
         const auto nb_lines = logData_->getNbLine();
         ++line;
-        while ( line.get() < nb_lines.get() ) {
+        while ( line < nb_lines ) {
             if ( quickFindPattern_->isLineMatching(
                         logData_->getExpandedLineString( line ) ) ) {
                 quickFindPattern_->getLastMatch(

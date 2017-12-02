@@ -51,7 +51,7 @@ LogFilteredData::LogFilteredData() : AbstractLogData(),
     /* Prevent any more searching */
     maxLength_ = 0_length;
     maxLengthMarks_ = 0_length;
-    nbLinesProcessed_ = 0_count;
+    nbLinesProcessed_ = 0_lcount;
     searchDone_ = true;
     visibility_ = MarksAndMatches;
 
@@ -71,7 +71,7 @@ LogFilteredData::LogFilteredData( const LogData* logData )
     // Starts with an empty result list
     maxLength_ = 0_length;
     maxLengthMarks_ = 0_length;
-    nbLinesProcessed_ = 0_count;
+    nbLinesProcessed_ = 0_lcount;
 
     sourceLogData_ = logData;
 
@@ -101,7 +101,7 @@ LogFilteredData::~LogFilteredData()
 
 void LogFilteredData::runSearch(const QRegularExpression& regExp)
 {
-    runSearch( regExp, 0_number, LineNumber( getNbTotalLines().get() ) );
+    runSearch( regExp, 0_lnum, LineNumber( getNbTotalLines().get() ) );
 }
 
 // Run the search and send newDataAvailable() signals.
@@ -157,7 +157,7 @@ void LogFilteredData::clearSearch()
     matching_lines_.clear();
     maxLength_        = 0_length;
     maxLengthMarks_   = 0_length;
-    nbLinesProcessed_ = 0_count;
+    nbLinesProcessed_ = 0_lcount;
     filteredItemsCacheDirty_ = true;
 }
 
@@ -218,7 +218,7 @@ LogFilteredData::FilteredLineType
 
 void LogFilteredData::addMark( LineNumber line, QChar mark )
 {
-    if ( line.get() < sourceLogData_->getNbLine().get() ) {
+    if ( line < sourceLogData_->getNbLine() ) {
         marks_.addMark( line, mark );
         maxLengthMarks_ = qMax( maxLengthMarks_,
                 sourceLogData_->getLineLength( line ) );
@@ -448,7 +448,7 @@ QStringList LogFilteredData::doGetLines( LineNumber first_line, LinesCount numbe
     QStringList list;
     list.reserve( number.get() );
 
-    for ( auto i = first_line; i < first_line + LineNumber(number.get()); ++i ) {
+    for ( auto i = first_line; i < first_line + number; ++i ) {
         list.append( doGetLineString( i ) );
     }
 
@@ -461,7 +461,7 @@ QStringList LogFilteredData::doGetExpandedLines( LineNumber first_line, LinesCou
     QStringList list;
     list.reserve( number.get() );
 
-    for ( auto i = first_line; i < first_line + LineNumber(number.get()); ++i ) {
+    for ( auto i = first_line; i < first_line + number; ++i ) {
         list.append( doGetExpandedLineString( i ) );
     }
 

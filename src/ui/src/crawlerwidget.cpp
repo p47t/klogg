@@ -378,7 +378,7 @@ void CrawlerWidget::updateLineNumberHandler( LineNumber line )
 
 void CrawlerWidget::markLineFromMain( LineNumber line )
 {
-    if ( line.get() < logData_->getNbLine().get() ) {
+    if ( line < logData_->getNbLine() ) {
         if ( logFilteredData_->isLineMarked( line ) )
             logFilteredData_->deleteMark( line );
         else
@@ -398,7 +398,7 @@ void CrawlerWidget::markLineFromMain( LineNumber line )
 
 void CrawlerWidget::markLineFromFiltered( LineNumber line )
 {
-    if ( line.get() < logFilteredData_->getNbLine().get() ) {
+    if ( line < logFilteredData_->getNbLine() ) {
         const auto line_in_file = logFilteredData_->getMatchingLineNumber( line );
         if ( logFilteredData_->filteredLineTypeByIndex( line )
                 == LogFilteredData::Mark )
@@ -529,7 +529,7 @@ void CrawlerWidget::fileChangedHandler( LogData::MonitoredFileStatus status )
             filteredView->updateData();
             searchState_.truncateFile();
             printSearchInfoMessage();
-            nbMatches_ = 0_count;
+            nbMatches_ = 0_lcount;
         }
     }
 }
@@ -634,7 +634,7 @@ void CrawlerWidget::setSearchLimits( LineNumber startLine, LineNumber endLine )
 
 void CrawlerWidget::clearSearchLimits()
 {
-    setSearchLimits(0_number, LineNumber( logData_->getNbLine().get() ));
+    setSearchLimits(0_lnum, LineNumber( logData_->getNbLine().get() ));
 }
 
 //
@@ -900,7 +900,7 @@ void CrawlerWidget::replaceCurrentSearch( const QString& searchText )
     // us the overhead of having proper sync.
     QApplication::processEvents( QEventLoop::ExcludeUserInputEvents );
 
-    nbMatches_ = 0_count;
+    nbMatches_ = 0_lcount;
 
     // Clear and recompute the content of the filtered window.
     logFilteredData_->clearSearch();

@@ -6,45 +6,49 @@
 
 #include <QMetaType>
 
+template <typename T>
+struct ConvertibleTo : fluent::crtp<T, ConvertibleTo>
+{
+    template<typename Destination>
+    Destination as() const
+    {
+        return Destination ( this->underlying().get() );
+    }
+};
+
 using LineOffset = fluent::NamedType<int64_t, struct line_offset,
                             fluent::Addable, fluent::Incrementable,
                             fluent::Subtractable,
                             fluent::Comparable, fluent::Printable>;
 
-LineOffset operator"" _offset(unsigned long long int value);
-
-
 using LineNumber = fluent::NamedType<uint32_t, struct line_number,
-                            fluent::Addable, fluent::Incrementable,
-                            fluent::Subtractable, fluent::Decrementable,
+                            fluent::Incrementable,
+                            fluent::Decrementable,
                             fluent::Comparable, fluent::Printable>;
-
-LineNumber operator"" _number(unsigned long long int value);
-
 
 using LinesCount = fluent::NamedType<uint32_t, struct lines_count,
                             fluent::Addable, fluent::Incrementable,
                             fluent::Subtractable, fluent::Decrementable,
                             fluent::Comparable, fluent::Printable>;
 
-LinesCount operator"" _count(unsigned long long int value);
-
-
 using LineLength = fluent::NamedType<int, struct lines_count,
                             fluent::Comparable, fluent::Printable>;
 
-LineLength operator"" _length(unsigned long long int value);
+inline LineOffset operator"" _offset( unsigned long long int value ) { return LineOffset(value); }
+inline LineNumber operator"" _lnum (unsigned long long int value ) { return LineNumber(value); }
+inline LinesCount operator"" _lcount( unsigned long long int value ) { return LinesCount(value); }
+inline LineLength operator"" _length( unsigned long long int value ) { return LineLength(value); }
 
 template<typename StrongType>
 StrongType maxValue()
 {
-    return StrongType(std::numeric_limits<typename StrongType::UnderlyingType>::max());
+    return StrongType( std::numeric_limits<typename StrongType::UnderlyingType>::max() );
 }
 
 using OptionalLineNumber = nonstd::optional<LineNumber>;
 
 template <typename T, typename Parameter, template<typename> class... Skills>
-plog::util::nstringstream& operator<<(plog::util::nstringstream& os, fluent::NamedType<T, Parameter, Skills...> const& object)
+plog::util::nstringstream& operator<<( plog::util::nstringstream& os, fluent::NamedType<T, Parameter, Skills...> const& object )
 {
     os << object.get();
     return os;
@@ -52,17 +56,17 @@ plog::util::nstringstream& operator<<(plog::util::nstringstream& os, fluent::Nam
 
 namespace plog {
 
-inline Record& operator<<(Record& record, const OptionalLineNumber& t)
-{
-    if (t) {
-        t->print(record);
-    }
-    else {
-        record << "none";
-    }
+    inline Record& operator<<( Record& record, const OptionalLineNumber& t )
+    {
+        if (t) {
+            t->print(record);
+        }
+        else {
+            record << "none";
+        }
 
-    return record;
-}
+        return record;
+    }
 
 }
 
@@ -70,9 +74,11 @@ inline Record& operator<<(Record& record, const OptionalLineNumber& t)
 class FilePosition
 {
   public:
-    FilePosition() : column_{-1} {}
+    FilePosition() : column_{ -1 } {}
     FilePosition( LineNumber line, int column )
-    { line_ = line; column_ = column; }
+        : line_ {line}
+        , column_ {column}
+    {}
 
     LineNumber line() const { return line_; }
     int column() const { return column_; }
@@ -82,8 +88,32 @@ class FilePosition
     int column_;
 };
 
-LineNumber operator+(const LineNumber& number, const LinesCount& count);
-LineNumber operator-(const LineNumber& number, const LinesCount& count);
+inline LineNumber operator+(const LineNumber& number, const LinesCount& count)
+{
+    uint64_t line = number.get() + count.get();
+    return line > maxValue<LineNumber>().get()
+            ? maxValue<LineNumber>()
+            : LineNumber( static_cast<LineNumber::UnderlyingType>(line) );
+}
+
+inline LineNumber operator-(const LineNumber& number, const LinesCount& count)
+{
+    int64_t line = number.get() - count.get();
+    return line >= 0 ? LineNumber(line) : LineNumber(0);
+}
+
+inline LinesCount operator-(const LineNumber& n1, const LineNumber& n2)
+{
+    int64_t count = n1.get() - n2.get();
+    return count >= 0 ? LinesCount(count) : LinesCount(0);
+}
+
+inline bool operator<( const LineNumber& number, const LinesCount& count ) { return number.get() < count.get(); }
+inline bool operator>( const LineNumber& number, const LinesCount& count ) { return count.get() < number.get(); }
+inline bool operator<=( const LineNumber& number, const LinesCount& count ) { return !(count.get() < number.get());}
+inline bool operator>=( const LineNumber& number, const LinesCount& count ) { return !(number < count); }
+inline bool operator==( const LineNumber& number, const LinesCount& count ) { return !(number < count) && !(count.get() < number.get()); }
+inline bool operator!=( const LineNumber& number, const LinesCount& count ) { return !(number == count); }
 
 Q_DECLARE_METATYPE(LineLength);
 Q_DECLARE_METATYPE(LineNumber);
@@ -147,6 +177,6 @@ template <typename T> bool lookupLineNumber(
 template<typename Iterator>
 LineNumber lookupLineNumber( Iterator begin, Iterator end, LineNumber lineNum )
 {
-    Iterator lowerBound = std::lower_bound( begin, end, lineNum );
-    return LineNumber(std::distance(begin, lowerBound));
+    const auto lowerBound = std::lower_bound( begin, end, lineNum );
+    return LineNumber( std::distance( begin, lowerBound ) );
 }

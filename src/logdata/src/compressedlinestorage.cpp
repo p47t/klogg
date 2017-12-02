@@ -119,7 +119,7 @@ void CompressedLinePositionStorage::move_from(
     block_offset_   = orig.block_offset_;
     previous_block_offset_ = orig.previous_block_offset_;
 
-    orig.nb_lines_ = 0_count;
+    orig.nb_lines_ = 0_lcount;
 }
 
 // Move constructor

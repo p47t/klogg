@@ -56,7 +56,7 @@ LineNumber Marks::getMark( QChar mark ) const
     // 'mark' is not used yet
     mark = mark;
 
-    return 0_number;
+    return 0_lnum;
 }
 
 bool Marks::isLineMarked( LineNumber line ) const

@@ -13,8 +13,6 @@ add_library(logdata STATIC
          ${CMAKE_CURRENT_SOURCE_DIR}/include/data/threadprivatestore.h
          ${CMAKE_CURRENT_SOURCE_DIR}/include/data/linetypes.h
 
-
-         ${CMAKE_CURRENT_SOURCE_DIR}/src/linetypes.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/abstractlogdata.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/blockpool.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/compressedlinestorage.cpp

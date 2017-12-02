@@ -28,7 +28,7 @@ class LinePositionArraySmall: public testing::Test {
 };
 
 TEST_F( LinePositionArraySmall, HasACorrectSize ) {
-    ASSERT_THAT( line_array.size(), Eq( 6_count ) );
+    ASSERT_THAT( line_array.size(), Eq( 6_lcount ) );
 }
 
 TEST_F( LinePositionArraySmall, RememberAddedLines ) {
@@ -63,7 +63,7 @@ class LinePositionArrayConcatOperation: public LinePositionArraySmall {
 TEST_F( LinePositionArrayConcatOperation, SimpleConcat ) {
     line_array.append_list( other_array );
 
-    ASSERT_THAT( line_array.size(), Eq( 8_count ) );
+    ASSERT_THAT( line_array.size(), Eq( 8_lcount ) );
 
     ASSERT_THAT( line_array[0], Eq( 4_offset ) );
     ASSERT_THAT( line_array[1], Eq( 8_offset ) );
@@ -79,7 +79,7 @@ TEST_F( LinePositionArrayConcatOperation, DoesNotKeepFakeLf ) {
 
     line_array.append_list( other_array );
     ASSERT_THAT( line_array[5], Eq( 150000_offset ) );
-    ASSERT_THAT( line_array.size(), Eq( 7_count ) );
+    ASSERT_THAT( line_array.size(), Eq( 7_lcount ) );
 }
 
 class LinePositionArrayLong: public testing::Test {
@@ -136,7 +136,7 @@ class LinePositionArrayBig: public testing::Test {
 };
 
 TEST_F( LinePositionArrayBig, IsTheRightSize ) {
-    ASSERT_THAT( line_array.size(), 9_count );
+    ASSERT_THAT( line_array.size(), 9_lcount );
 }
 
 TEST_F( LinePositionArrayBig, HasRightData ) {
@@ -180,7 +180,7 @@ class LinePositionArrayBigConcat: public testing::Test {
 TEST_F( LinePositionArrayBigConcat, SimpleBigConcat ) {
     line_array.append_list( other_array );
 
-    ASSERT_THAT( line_array.size(), Eq( 4_count ) );
+    ASSERT_THAT( line_array.size(), Eq( 4_lcount ) );
 
     ASSERT_THAT( line_array[0].get(), Eq( 4 ) );
     ASSERT_THAT( line_array[1].get(), Eq( 8 ) );

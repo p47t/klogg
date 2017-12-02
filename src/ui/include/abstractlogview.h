@@ -396,7 +396,7 @@ class AbstractLogView :
         QPixmap pixmap_;
         int nb_columns_;
     };
-    TextAreaCache textAreaCache_ = { {}, true, 0_number, 0_number, 0 };
+    TextAreaCache textAreaCache_ = { {}, true, 0_lnum, 0_lnum, 0 };
     PullToFollowCache pullToFollowCache_ = { {}, 0 };
 
     LinesCount getNbVisibleLines() const;

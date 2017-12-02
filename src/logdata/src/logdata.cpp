@@ -268,7 +268,7 @@ LineLength LogData::doGetMaxLength() const
 
 LineLength LogData::doGetLineLength( LineNumber line ) const
 {
-    if ( line >= LineNumber { indexing_data_.getNbLines().get() } ) { return LineLength { 0 }; /* exception? */ }
+    if ( line >= indexing_data_.getNbLines() ) { return 0_length; /* exception? */ }
 
     return LineLength( doGetExpandedLineString( line ).length() );
 }
@@ -297,11 +297,11 @@ QTextCodec* LogData::doGetDisplayEncoding() const
 
 QString LogData::doGetLineString( LineNumber line ) const
 {
-    if ( line.get() >= indexing_data_.getNbLines().get() ) { return ""; /* exception? */ }
+    if ( line >= indexing_data_.getNbLines() ) { return ""; /* exception? */ }
 
     fileMutex_.lock();
 
-    attached_file_->seek( (line.get() == 0) ? 0 : indexing_data_.getPosForLine( line - 1_number ).get() );
+    attached_file_->seek( ( line.get() == 0 ) ? 0 : indexing_data_.getPosForLine( line - 1_lcount ).get() );
     const auto rawString = attached_file_->readLine();
 
     fileMutex_.unlock();
@@ -314,11 +314,11 @@ QString LogData::doGetLineString( LineNumber line ) const
 
 QString LogData::doGetExpandedLineString( LineNumber line ) const
 {
-    if ( line.get() >= indexing_data_.getNbLines().get() ) { return ""; /* exception? */ }
+    if ( line >= indexing_data_.getNbLines() ) { return ""; /* exception? */ }
 
     fileMutex_.lock();
 
-    attached_file_->seek( (line.get() == 0) ? 0 : indexing_data_.getPosForLine( line - 1_number ).get() );
+    attached_file_->seek( ( line.get() == 0 ) ? 0 : indexing_data_.getPosForLine( line - 1_lcount).get() );
     const auto rawString = attached_file_->readLine();
 
     fileMutex_.unlock();
@@ -334,7 +334,7 @@ QString LogData::doGetExpandedLineString( LineNumber line ) const
 // indexingFinished).
 QStringList LogData::doGetLines( LineNumber first_line, LinesCount number ) const
 {
-    const auto last_line = LineNumber(first_line.get() + number.get() - 1);
+    const auto last_line = first_line + number - 1_lcount;
 
     // LOG(logDEBUG) << "LogData::doGetLines first_line:" << first_line << " nb:" << number;
 
@@ -342,13 +342,13 @@ QStringList LogData::doGetLines( LineNumber first_line, LinesCount number ) cons
         return QStringList();
     }
 
-    if ( last_line >= LineNumber( indexing_data_.getNbLines().get() ) ) {
+    if ( last_line >= indexing_data_.getNbLines() ) {
         LOG(logWARNING) << "LogData::doGetLines Lines out of bound asked for";
         return QStringList(); /* exception? */
     }
 
     const auto first_byte = (first_line.get() == 0) ?
-        0 : indexing_data_.getPosForLine( first_line - LineNumber(1) ).get();
+        0 : indexing_data_.getPosForLine( first_line - 1_lcount ).get();
     const auto last_byte  = indexing_data_.getPosForLine( last_line ).get();
 
     fileMutex_.lock();
@@ -378,13 +378,13 @@ QStringList LogData::doGetLines( LineNumber first_line, LinesCount number ) cons
 
 QStringList LogData::doGetExpandedLines( LineNumber first_line, LinesCount number ) const
 {
-    const auto last_line = LineNumber( first_line.get() + number.get() - 1 );
+    const auto last_line = first_line + number - 1_lcount;
 
     if ( number.get() == 0 ) {
         return QStringList();
     }
 
-    if ( last_line >= LineNumber( indexing_data_.getNbLines().get() ) ) {
+    if ( last_line >= indexing_data_.getNbLines() ) {
         LOG(logWARNING) << "LogData::doGetExpandedLines Lines out of bound asked for";
         return QStringList(); /* exception? */
     }
@@ -392,7 +392,7 @@ QStringList LogData::doGetExpandedLines( LineNumber first_line, LinesCount numbe
     fileMutex_.lock();
 
     const auto first_byte = (first_line.get() == 0) ?
-        0 : indexing_data_.getPosForLine( first_line-LineNumber(1) ).get();
+        0 : indexing_data_.getPosForLine( first_line-1_lcount ).get();
     const auto last_byte  = indexing_data_.getPosForLine( last_line ).get();
     // LOG(logDEBUG) << "LogData::doGetExpandedLines first_byte:" << first_byte << " last_byte:" << last_byte;
 

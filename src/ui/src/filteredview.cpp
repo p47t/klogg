@@ -70,7 +70,7 @@ AbstractLogView::LineType FilteredView::lineType( LineNumber lineNumber ) const
 LineNumber FilteredView::displayLineNumber( LineNumber lineNumber ) const
 {
     // Display a 1-based index
-    return logFilteredData_->getMatchingLineNumber( lineNumber ) + 1_number;
+    return logFilteredData_->getMatchingLineNumber( lineNumber ) + 1_lcount;
 }
 
 LineNumber FilteredView::lineIndex(LineNumber lineNumber ) const
@@ -88,7 +88,7 @@ void FilteredView::keyPressEvent( QKeyEvent* keyEvent )
     bool noModifier = keyEvent->modifiers() == Qt::NoModifier;
 
     if ( keyEvent->key() == Qt::Key_BracketLeft && noModifier ) {
-        for ( LineNumber i = getViewPosition() - 1_count;; --i ) {
+        for ( LineNumber i = getViewPosition() - 1_lcount;; --i ) {
             if ( lineType( i ) == Marked ) {
                 selectAndDisplayLine( i );
                 break;
@@ -101,10 +101,10 @@ void FilteredView::keyPressEvent( QKeyEvent* keyEvent )
         keyEvent->accept();
     }
     else if ( keyEvent->key() == Qt::Key_BracketRight && noModifier ) {
-        for ( LineNumber i = getViewPosition() + 1_count;
-                i.get() < logFilteredData_->getNbLine().get(); ++i ) {
+        const auto nbLines = logFilteredData_->getNbLine();
+        for ( auto i = getViewPosition() + 1_lcount; i < nbLines; ++i ) {
             if ( lineType( i ) == Marked ) {
-                selectAndDisplayLine( static_cast<LineNumber>( i ) );
+                selectAndDisplayLine( i );
                 break;
             }
         }
