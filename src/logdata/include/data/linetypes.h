@@ -139,45 +139,47 @@ template <typename T> bool lookupLineNumber(
 {
     auto minIndex = 0u;
     auto maxIndex = static_cast<uint32_t>( list.size() - 1 );
-    // If the list is not empty
-    if ( maxIndex - minIndex >= 0 ) {
-        // First we test the ends
-        if ( list[minIndex].lineNumber() == lineNumber ) {
-            *foundIndex = minIndex;
-            return true;
-        }
-        else if ( list[maxIndex].lineNumber() == lineNumber ) {
-            *foundIndex = maxIndex;
-            return true;
-        }
 
-        // Then we test the rest
-        while ( (maxIndex - minIndex) > 1 ) {
-            const int tryIndex = (minIndex + maxIndex) / 2;
-            const auto currentMatchingNumber =
-                list[tryIndex].lineNumber();
-            if ( currentMatchingNumber > lineNumber )
-                maxIndex = tryIndex;
-            else if ( currentMatchingNumber < lineNumber )
-                minIndex = tryIndex;
-            else if ( currentMatchingNumber == lineNumber ) {
-                *foundIndex = tryIndex;
-                return true;
-            }
-        }
-
-        // If we haven't found anything...
-        // ... end of the list or before the next
-        if ( lineNumber > list[maxIndex].lineNumber() )
-            *foundIndex = maxIndex + 1;
-        else if ( lineNumber > list[minIndex].lineNumber() )
-            *foundIndex = minIndex + 1;
-        else
-            *foundIndex = minIndex;
-    }
-    else {
+    if ( list.empty() ) {
         *foundIndex = 0;
+        return false;
     }
+
+    // If the list is not empty
+    // First we test the ends
+    if ( list[minIndex].lineNumber() == lineNumber ) {
+        *foundIndex = minIndex;
+        return true;
+    }
+    else if ( list[maxIndex].lineNumber() == lineNumber ) {
+        *foundIndex = maxIndex;
+        return true;
+    }
+
+    // Then we test the rest
+    while ( (maxIndex - minIndex) > 1 ) {
+        const int tryIndex = (minIndex + maxIndex) / 2;
+        const auto currentMatchingNumber =
+            list[tryIndex].lineNumber();
+        if ( currentMatchingNumber > lineNumber )
+            maxIndex = tryIndex;
+        else if ( currentMatchingNumber < lineNumber )
+            minIndex = tryIndex;
+        else if ( currentMatchingNumber == lineNumber ) {
+            *foundIndex = tryIndex;
+            return true;
+        }
+    }
+
+    // If we haven't found anything...
+    // ... end of the list or before the next
+    if ( lineNumber > list[maxIndex].lineNumber() )
+        *foundIndex = maxIndex + 1;
+    else if ( lineNumber > list[minIndex].lineNumber() )
+        *foundIndex = minIndex + 1;
+    else
+        *foundIndex = minIndex;
+
 
     return false;
 }
