@@ -43,6 +43,13 @@ StrongType maxValue()
 
 using OptionalLineNumber = nonstd::optional<LineNumber>;
 
+template <typename T, typename Parameter, template<typename> class... Skills>
+plog::util::nstringstream& operator<<(plog::util::nstringstream& os, fluent::NamedType<T, Parameter, Skills...> const& object)
+{
+    os << object.get();
+    return os;
+}
+
 namespace plog {
 
 inline Record& operator<<(Record& record, const OptionalLineNumber& t)
