@@ -333,7 +333,7 @@ void AbstractLogView::mousePressEvent( QMouseEvent* mouseEvent )
     {
         const auto line = convertCoordToLine( mouseEvent->y() );
 
-        if (line && mouseEvent->modifiers() & Qt::ShiftModifier )
+        if (line.has_value() && mouseEvent->modifiers() & Qt::ShiftModifier )
         {
             selection_.selectRangeFromPrevious( *line );
             emit updateLineNumber( *line );
@@ -464,7 +464,7 @@ void AbstractLogView::mouseReleaseEvent( QMouseEvent* mouseEvent )
     if ( markingClickInitiated_ ) {
         markingClickInitiated_ = false;
         const auto line = convertCoordToLine( mouseEvent->y() );
-        if ( line && line == markingClickLine_ ) {
+        if ( line.has_value() && line == markingClickLine_ ) {
             // Invalidate our cache
             textAreaCache_.invalid_ = true;
 
@@ -645,7 +645,7 @@ void AbstractLogView::keyPressEvent( QKeyEvent* keyEvent )
                 case 'm':
                     {
                         auto line = selection_.selectedLine();
-                        if ( line )
+                        if ( line.has_value() )
                             emit markLine( *line );
                         break;
                     }
@@ -910,7 +910,7 @@ LineNumber AbstractLogView::getViewPosition() const
     LineNumber line;
 
     const auto selectedLine = selection_.selectedLine();
-    if ( selectedLine ) {
+    if ( selectedLine.has_value() ) {
         line = *selectedLine;
     }
     else {
@@ -927,7 +927,7 @@ void AbstractLogView::searchUsingFunction(
     disableFollow();
 
     const auto line = (quickFind_.*search_function)();
-    if ( line ) {
+    if ( line.has_value() ) {
         LOG(logDEBUG) << "search " << line;
         displayLine( *line );
         emit updateLineNumber( *line );
@@ -1128,14 +1128,14 @@ void AbstractLogView::updateSearchLimits()
 void AbstractLogView::setSearchStart()
 {
     const auto selectedLine = selection_.selectedLine();
-    searchStart_ = selectedLine ? *selectedLine : 0_number;
+    searchStart_ = selectedLine.has_value() ? *selectedLine : 0_number;
     updateSearchLimits();
 }
 
 void AbstractLogView::setSearchEnd()
 {
     const auto selectedLine = selection_.selectedLine();
-    searchEnd_ = selectedLine ? *selectedLine  + 1_count : LineNumber( logData->getNbLine().get() );
+    searchEnd_ = selectedLine.has_value() ? *selectedLine  + 1_count : LineNumber( logData->getNbLine().get() );
     updateSearchLimits();
 }
 
@@ -1288,7 +1288,8 @@ int AbstractLogView::getNbVisibleCols() const
 OptionalLineNumber AbstractLogView::convertCoordToLine(int yPos) const
 {
     const int line = firstLine.get() +  ( yPos - drawingTopOffset_ ) / charHeight_;
-    return line >= 0 ? OptionalLineNumber(line) : OptionalLineNumber{};
+    return line >= 0 ? OptionalLineNumber( LineNumber{ static_cast<LineNumber::UnderlyingType>( line ) } )
+                     : OptionalLineNumber{};
 }
 
 // Converts the mouse x, y coordinates to the char coordinates (in the file)
@@ -1296,7 +1297,7 @@ OptionalLineNumber AbstractLogView::convertCoordToLine(int yPos) const
 QPoint AbstractLogView::convertCoordToFilePos( const QPoint& pos ) const
 {
     auto line = convertCoordToLine( pos.y() );
-    if (!line) {
+    if ( !line.has_value() ) {
         line = LineNumber{};
     }
     if ( line->get() >= logData->getNbLine().get() )
@@ -1537,7 +1538,7 @@ void AbstractLogView::considerMouseHovering( int x_pos, int y_pos )
 {
     const auto line = convertCoordToLine( y_pos );
     if ( ( x_pos < leftMarginPx_ )
-            && ( !!line )
+            && ( line.has_value() )
             && ( line->get() < logData->getNbLine().get() ) ) {
         // Mouse moved in the margin, send event up
         // (possibly to highlight the overview)
@@ -1548,7 +1549,7 @@ void AbstractLogView::considerMouseHovering( int x_pos, int y_pos )
         }
     }
     else {
-        if ( lastHoveredLine_ ) {
+        if ( lastHoveredLine_.has_value() ) {
             emit mouseLeftHoveringZone();
             lastHoveredLine_ = {};
         }

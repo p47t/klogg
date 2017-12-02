@@ -21,7 +21,7 @@
 #define __LOG_H__
 
 #include <plog/Log.h>
-#include <experimental/optional>
+#include <nonstd/optional.hpp>
 
 #define logINFO plog::info
 #define logWARNING plog::warning
@@ -59,7 +59,7 @@ namespace plog
     };
 
     template<typename T>
-    Record& operator<<(Record& record, const std::experimental::optional<T>& t)
+    Record& operator<<(Record& record, const nonstd::optional<T>& t)
     {
         if (t) {
             t->print(record);

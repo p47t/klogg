@@ -74,14 +74,14 @@ void LogMainView::keyPressEvent( QKeyEvent* keyEvent )
 
     if ( keyEvent->key() == Qt::Key_BracketLeft && noModifier ) {
         const auto line = filteredData_->getMarkBefore( getViewPosition() );
-        if ( line ) {
+        if ( line.has_value() ) {
             selectAndDisplayLine( *line );
         }
         keyEvent->accept();
     }
     else if ( keyEvent->key() == Qt::Key_BracketRight && noModifier ) {
         const auto line = filteredData_->getMarkAfter( getViewPosition() );
-        if ( line ) {
+        if ( line.has_value() ) {
             selectAndDisplayLine( *line );
         }
         keyEvent->accept();

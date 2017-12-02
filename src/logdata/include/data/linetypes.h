@@ -1,7 +1,7 @@
 #pragma once
 #include <named_type/named_type.hpp>
 #include <limits>
-#include <experimental/optional>
+#include <nonstd/optional.hpp>
 #include <plog/Record.h>
 
 #include <QMetaType>
@@ -41,7 +41,7 @@ StrongType maxValue()
     return StrongType(std::numeric_limits<typename StrongType::UnderlyingType>::max());
 }
 
-using OptionalLineNumber = std::experimental::optional<LineNumber>;
+using OptionalLineNumber = nonstd::optional<LineNumber>;
 
 // Represents a position in a file (line, column)
 class FilePosition

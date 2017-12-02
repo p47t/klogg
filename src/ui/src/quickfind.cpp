@@ -54,7 +54,7 @@ void SearchingNotifier::sendNotification( qint64 current_line, qint64 nb_lines )
 
 void QuickFind::LastMatchPosition::set( LineNumber line, int column )
 {
-    if ( ( !line_ ) ||
+    if ( ( !line_.has_value() ) ||
             ( ( line <= *line_ ) && ( column < column_ ) ) )
     {
         line_ = line;
@@ -69,7 +69,7 @@ void QuickFind::LastMatchPosition::set( const FilePosition &position )
 
 bool QuickFind::LastMatchPosition::isLater( OptionalLineNumber line, int column ) const
 {
-    if ( !line_ || !line  )
+    if ( !line_.has_value() || !line.has_value()  )
         return false;
     else if ( ( *line == *line_ ) && ( column >= column_ ) )
         return true;
@@ -86,7 +86,7 @@ bool QuickFind::LastMatchPosition::isLater( const FilePosition &position ) const
 
 bool QuickFind::LastMatchPosition::isSooner( OptionalLineNumber line, int column ) const
 {
-    if ( !line_ || !line )
+    if ( !line_.has_value() || !line.has_value() )
         return false;
     else if ( ( *line == *line_ ) && ( column <= column_ ) )
         return true;
