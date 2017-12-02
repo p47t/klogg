@@ -43,6 +43,22 @@ StrongType maxValue()
 
 using OptionalLineNumber = nonstd::optional<LineNumber>;
 
+namespace plog {
+
+inline Record& operator<<(Record& record, const OptionalLineNumber& t)
+{
+    if (t) {
+        t->print(record);
+    }
+    else {
+        record << "none";
+    }
+
+    return record;
+}
+
+}
+
 // Represents a position in a file (line, column)
 class FilePosition
 {

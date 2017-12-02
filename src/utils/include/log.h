@@ -57,18 +57,5 @@ namespace plog
             return ss.str();
         }
     };
-
-    template<typename T>
-    Record& operator<<(Record& record, const nonstd::optional<T>& t)
-    {
-        if (t) {
-            t->print(record);
-        }
-        else {
-            record << "none";
-        }
-
-        return record;
-    }
 }
 #endif //__LOG_H__
