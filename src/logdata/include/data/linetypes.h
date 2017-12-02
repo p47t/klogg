@@ -34,10 +34,14 @@ using LinesCount = fluent::NamedType<uint32_t, struct lines_count,
 using LineLength = fluent::NamedType<int, struct lines_count,
                             fluent::Comparable, fluent::Printable>;
 
-inline LineOffset operator"" _offset( unsigned long long int value ) { return LineOffset(value); }
-inline LineNumber operator"" _lnum (unsigned long long int value ) { return LineNumber(value); }
-inline LinesCount operator"" _lcount( unsigned long long int value ) { return LinesCount(value); }
-inline LineLength operator"" _length( unsigned long long int value ) { return LineLength(value); }
+inline LineOffset operator"" _offset( unsigned long long int value )
+{ return LineOffset( static_cast<LineOffset::UnderlyingType>( value ) ); }
+inline LineNumber operator"" _lnum (unsigned long long int value )
+{ return LineNumber( static_cast<LineNumber::UnderlyingType>( value ) ); }
+inline LinesCount operator"" _lcount( unsigned long long int value )
+{ return LinesCount( static_cast<LinesCount::UnderlyingType>( value ) ); }
+inline LineLength operator"" _length( unsigned long long int value )
+{ return LineLength( static_cast<LineLength::UnderlyingType>( value ) ); }
 
 template<typename StrongType>
 StrongType maxValue()
@@ -99,13 +103,17 @@ inline LineNumber operator+(const LineNumber& number, const LinesCount& count)
 inline LineNumber operator-(const LineNumber& number, const LinesCount& count)
 {
     int64_t line = number.get() - count.get();
-    return line >= 0 ? LineNumber(line) : LineNumber(0);
+    return line >= 0
+            ? LineNumber( static_cast<LineNumber::UnderlyingType>( line ) )
+            : LineNumber( 0u );
 }
 
 inline LinesCount operator-(const LineNumber& n1, const LineNumber& n2)
 {
     int64_t count = n1.get() - n2.get();
-    return count >= 0 ? LinesCount(count) : LinesCount(0);
+    return count >= 0
+            ? LinesCount( static_cast<LinesCount::UnderlyingType>( count ) )
+            : LinesCount( 0u );
 }
 
 inline bool operator<( const LineNumber& number, const LinesCount& count ) { return number.get() < count.get(); }
@@ -127,10 +135,10 @@ Q_DECLARE_METATYPE(LinesCount);
 // foundIndex is the index of the found number or the index
 // of the closest greater element.
 template <typename T> bool lookupLineNumber(
-        const T& list, LineNumber lineNumber, int* foundIndex )
+        const T& list, LineNumber lineNumber, uint32_t* foundIndex )
 {
-    int minIndex = 0;
-    int maxIndex = list.size() - 1;
+    auto minIndex = 0u;
+    auto maxIndex = static_cast<uint32_t>( list.size() - 1 );
     // If the list is not empty
     if ( maxIndex - minIndex >= 0 ) {
         // First we test the ends
@@ -178,5 +186,5 @@ template<typename Iterator>
 LineNumber lookupLineNumber( Iterator begin, Iterator end, LineNumber lineNum )
 {
     const auto lowerBound = std::lower_bound( begin, end, lineNum );
-    return LineNumber( std::distance( begin, lowerBound ) );
+    return LineNumber( static_cast<LineNumber::UnderlyingType>( std::distance( begin, lowerBound ) ) );
 }

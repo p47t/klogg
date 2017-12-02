@@ -126,7 +126,7 @@ void LogFilteredData::runSearch(const QRegularExpression& regExp,
             shouldRunSearch = false;
             matching_lines_ = cachedResults.value().matching_lines;
             maxLength_ = cachedResults.value().maxLength;
-            emit searchProgressed( LinesCount( matching_lines_.size() ), 100 );
+            emit searchProgressed( LinesCount( static_cast<LinesCount::UnderlyingType>( matching_lines_.size() ) ), 100 );
         }
     }
 
@@ -174,7 +174,7 @@ LineNumber LogFilteredData::getLineIndexNumber( LineNumber lineNumber ) const
 // Scan the list for the 'lineNumber' passed
 bool LogFilteredData::isLineInMatchingList( LineNumber lineNumber )
 {
-    int index;                                    // Not used
+    uint32_t index;                                    // Not used
     return lookupLineNumber<SearchResultArray>(
             matching_lines_, lineNumber, &index);
 }
@@ -187,7 +187,7 @@ LinesCount LogFilteredData::getNbTotalLines() const
 
 LinesCount LogFilteredData::getNbMatches() const
 {
-    return LinesCount(matching_lines_.size());
+    return LinesCount( static_cast<LinesCount::UnderlyingType>( matching_lines_.size() ) );
 }
 
 LinesCount LogFilteredData::getNbMarks() const
@@ -485,7 +485,7 @@ LinesCount LogFilteredData::doGetNbLine() const
         nbLines = filteredItemsCache_.size();
     }
 
-    return LinesCount(nbLines);
+    return LinesCount( static_cast<LinesCount::UnderlyingType>( nbLines ) );
 }
 
 // Implementation of the virtual function.

@@ -38,7 +38,10 @@ namespace
         LineLength maxLength;
     };
 
-    PartialSearchResults filterLines(const QRegularExpression& regex, const QStringList& lines, LineNumber chunkStart, int proc, int procs)
+    PartialSearchResults filterLines(const QRegularExpression& regex,
+                                     const QStringList& lines,
+                                     LineNumber chunkStart,
+                                     int proc, int procs)
     {
         PartialSearchResults results;
         for (int i = proc; i < lines.size(); i += procs) {
@@ -290,10 +293,11 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
         LOG(logDEBUG) << "Chunk starting at " << chunkStart <<
              ", " << lines.size() << " lines read.";
 
-        if (regexp.size() > 0) {
+        if ( regexp.size() > 0 ) {
             std::vector<QFuture<PartialSearchResults>> partialResults;
-            for (auto i=0u; i<regexp.size(); ++i) {
-                partialResults.push_back(QtConcurrent::run(filterLines, regexp[i], lines, chunkStart, i, regexp.size()));
+            for ( auto i=0; i < static_cast<int>( regexp.size() ); ++i ) {
+                partialResults.push_back(QtConcurrent::run( filterLines, regexp[i], lines,
+                                                           chunkStart, i, static_cast<int>( regexp.size() ) ) );
             }
 
             for (auto& f: partialResults) {
@@ -301,15 +305,15 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
                 auto result = f.result();
                 currentList.insert(currentList.end(), result.matchingLines.begin(), result.matchingLines.end());
                 maxLength = qMax(maxLength, f.result().maxLength);
-                nbMatches += LinesCount( f.result().matchingLines.size() );
+                nbMatches += LinesCount( static_cast<LinesCount::UnderlyingType>( f.result().matchingLines.size() ) );
             }
             std::sort(currentList.begin(), currentList.end());
         }
         else {
             auto matchResults = filterLines(regexp_, lines, chunkStart, 0, 1);
-            currentList = std::move(matchResults.matchingLines);
-            maxLength = qMax(maxLength, matchResults.maxLength);
-            nbMatches += LinesCount( currentList.size() );
+            currentList = std::move( matchResults.matchingLines );
+            maxLength = qMax( maxLength, matchResults.maxLength );
+            nbMatches += LinesCount( static_cast<LinesCount::UnderlyingType>( currentList.size() ) );
         }
 
         // After each block, copy the data to shared data

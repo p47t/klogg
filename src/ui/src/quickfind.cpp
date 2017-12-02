@@ -351,7 +351,7 @@ OptionalLineNumber QuickFind::doSearchBackward( const FilePosition &start_positi
                 --line;
 
                 // See if we need to notify of the ongoing search
-                searchingNotifier_.ping( -line.get(), nb_lines.get() );
+                searchingNotifier_.ping( -static_cast<qint64>( line.get() ), nb_lines.get() );
             }
         }
     }

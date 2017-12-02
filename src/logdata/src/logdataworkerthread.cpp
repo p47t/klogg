@@ -191,7 +191,7 @@ void LogDataWorkerThread::run()
                     emit indexingFinished( LoadingStatus::Interrupted );
                 }
             }
-            catch ( std::bad_alloc& ba ) {
+            catch ( std::bad_alloc& ) {
                 LOG(logERROR) << "Out of memory whilst indexing!";
                 emit indexingFinished( LoadingStatus::NoMemory );
             }
@@ -224,7 +224,7 @@ PartialIndexOperation::PartialIndexOperation( const QString& fileName,
 void IndexOperation::doIndex(IndexingData* indexing_data, LineOffset initialPosition )
 {
     auto pos = initialPosition.get(); // Absolute position of the start of current line
-    auto end = 0;  // Absolute position of the end of current line
+    auto end = 0ll;  // Absolute position of the end of current line
     int additional_spaces = 0;  // Additional spaces due to tabs
 
     QTextCodec* fileTextCodec = nullptr;
@@ -244,7 +244,7 @@ void IndexOperation::doIndex(IndexingData* indexing_data, LineOffset initialPosi
         file.seek( pos );
         while ( !file.atEnd() ) {
             FastLinePositionArray line_positions;
-            uint32_t max_length = 0;
+            LineLength::UnderlyingType max_length = 0;
 
             if ( *interruptRequest_ )
                 break;
@@ -268,20 +268,20 @@ void IndexOperation::doIndex(IndexingData* indexing_data, LineOffset initialPosi
             }
 
             // Count the number of lines in each chunk
-            qint64 pos_within_block = 0;
+            int pos_within_block = 0;
             while ( pos_within_block != -1 ) {
-                pos_within_block = qMax( pos - block_beginning, 0LL);
+                pos_within_block = qMax( static_cast<int>( pos - block_beginning ), 0 );
 
                 // Looking for the next \n, expanding tabs in the process
                 do {
                     if ( pos_within_block < block.length() ) {
-                        const char c =  block.at(pos_within_block + encodingParams.lineFeedIndex);
+                        const char c =  block.at( pos_within_block + encodingParams.lineFeedIndex );
 
                         if ( c == '\n')
                             break;
                         else if ( c == '\t')
                             additional_spaces += AbstractLogData::tabStop -
-                                ( ( ( block_beginning - pos ) + pos_within_block
+                                ( static_cast<int>( ( block_beginning - pos ) + pos_within_block
                                     + additional_spaces ) % AbstractLogData::tabStop ) - 1;
 
                         pos_within_block += encodingParams.lineFeedWidth;
@@ -294,7 +294,7 @@ void IndexOperation::doIndex(IndexingData* indexing_data, LineOffset initialPosi
                 // When a end of line has been found...
                 if ( pos_within_block != -1 ) {
                     end = pos_within_block + block_beginning;
-                    const uint32_t length = end-pos + additional_spaces;
+                    const auto length = static_cast<LineLength::UnderlyingType>( end-pos + additional_spaces );
                     if ( length > max_length )
                         max_length = length;
 
@@ -311,7 +311,7 @@ void IndexOperation::doIndex(IndexingData* indexing_data, LineOffset initialPosi
                    encodingGuess );
 
             // Update the caller for progress indication
-            int progress = ( file.size() > 0 ) ? pos*100 / file.size() : 100;
+            int progress = static_cast<int>( ( file.size() > 0 ) ? pos*100 / file.size() : 100 );
             emit indexingProgressed( progress );
         }
 

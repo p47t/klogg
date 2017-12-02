@@ -34,7 +34,7 @@ Marks::Marks() : marks_()
 void Marks::addMark( LineNumber line, QChar mark )
 {
     // Look for the index immediately before
-    int index;
+    uint32_t index;
     if ( ! lookupLineNumber( marks_, line, &index ) )
     {
         // If a mark is not already set for this line
@@ -61,7 +61,7 @@ LineNumber Marks::getMark( QChar mark ) const
 
 bool Marks::isLineMarked( LineNumber line ) const
 {
-    int index;
+    uint32_t index;
     return lookupLineNumber( marks_, line, &index );
 }
 
@@ -73,7 +73,7 @@ void Marks::deleteMark( QChar mark )
 
 void Marks::deleteMark( LineNumber line )
 {
-    int index;
+    uint32_t index;
 
     if ( lookupLineNumber( marks_, line, &index ) )
     {

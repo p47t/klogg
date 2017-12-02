@@ -368,7 +368,8 @@ QStringList LogData::doGetLines( LineNumber first_line, LinesCount number ) cons
         end = indexing_data_.getPosForLine( line ).get() - first_byte;
         // LOG(logDEBUG) << "Getting line " << line << " beginning " << beginning << " end " << end;
         // LOG(logDEBUG) << "Line is: " << std::string( blob.data() + beginning, end - beginning - 1 );
-        list.append( codec_->toUnicode( blob.data() + beginning, end - beginning - 1 ) );
+        list.append( codec_->toUnicode( blob.data() + beginning,
+                                        static_cast<LineLength::UnderlyingType>( end - beginning - 1 ) ) );
 
         beginning = end;
     }
@@ -410,7 +411,9 @@ QStringList LogData::doGetExpandedLines( LineNumber first_line, LinesCount numbe
         end = indexing_data_.getPosForLine( line ).get() - first_byte;
         // LOG(logDEBUG) << "Getting line " << line << " beginning " << beginning << " end " << end;
         // LOG(logDEBUG) << "Line is: " << std::string( blob.data() + beginning, end - beginning - 1 );
-        list.append( untabify( codec_->toUnicode( blob.data() + beginning, end - beginning - 1 ) ) );
+
+        list.append( untabify( codec_->toUnicode( blob.data() + beginning,
+                                                  static_cast<LineLength::UnderlyingType>( end - beginning - 1 ) ) ) );
         beginning = end;
     }
 
