@@ -36,25 +36,25 @@ qint64 IndexingData::getSize() const
     return indexedSize_;
 }
 
-int IndexingData::getMaxLength() const
+LineLength IndexingData::getMaxLength() const
 {
     QMutexLocker locker( &dataMutex_ );
 
     return maxLength_;
 }
 
-LineNumber IndexingData::getNbLines() const
+LinesCount IndexingData::getNbLines() const
 {
     QMutexLocker locker( &dataMutex_ );
 
-    return linePosition_.size();
+    return LinesCount( linePosition_.size() );
 }
 
-qint64 IndexingData::getPosForLine( LineNumber line ) const
+LineOffset IndexingData::getPosForLine( LineNumber line ) const
 {
     QMutexLocker locker( &dataMutex_ );
 
-    return linePosition_.at( line );
+    return linePosition_.at( line.get() );
 }
 
 QTextCodec *IndexingData::getEncodingGuess() const
@@ -75,7 +75,7 @@ QTextCodec* IndexingData::getForcedEncoding() const
      return encodingForced_;
 }
 
-void IndexingData::addAll(qint64 size, int length,
+void IndexingData::addAll(qint64 size, LineLength length,
         const FastLinePositionArray& linePosition,
         QTextCodec *encoding )
 
@@ -93,7 +93,7 @@ void IndexingData::clear()
 {
 	QMutexLocker locker(&dataMutex_);
 
-    maxLength_   = 0;
+    maxLength_   = 0_length;
     indexedSize_ = 0;
     linePosition_ = LinePositionArray();
     encodingGuess_    = QTextCodec::codecForLocale();
@@ -221,11 +221,11 @@ PartialIndexOperation::PartialIndexOperation( const QString& fileName,
 {
 }
 
-void IndexOperation::doIndex(IndexingData* indexing_data, qint64 initialPosition )
+void IndexOperation::doIndex(IndexingData* indexing_data, LineOffset initialPosition )
 {
-    qint64 pos = initialPosition; // Absolute position of the start of current line
-    qint64 end = 0;               // Absolute position of the end of current line
-    int additional_spaces = 0;    // Additional spaces due to tabs
+    auto pos = initialPosition.get(); // Absolute position of the start of current line
+    auto end = 0;  // Absolute position of the end of current line
+    int additional_spaces = 0;  // Additional spaces due to tabs
 
     QTextCodec* fileTextCodec = nullptr;
     QTextCodec* encodingGuess = nullptr;
@@ -234,7 +234,7 @@ void IndexOperation::doIndex(IndexingData* indexing_data, qint64 initialPosition
     static std::shared_ptr<Configuration> config =
         Persistent<Configuration>( "settings" );
 
-    const int sizeChunk = config->indexReadBufferSizeMb() * 1024 * 1024;
+    const uint32_t sizeChunk = config->indexReadBufferSizeMb() * 1024 * 1024;
 
     QFile file( fileName_ );
 
@@ -244,14 +244,14 @@ void IndexOperation::doIndex(IndexingData* indexing_data, qint64 initialPosition
         file.seek( pos );
         while ( !file.atEnd() ) {
             FastLinePositionArray line_positions;
-            int max_length = 0;
+            uint32_t max_length = 0;
 
             if ( *interruptRequest_ )
                 break;
 
             // Read a chunk of 5MB
-            const qint64 block_beginning = file.pos();
-            const QByteArray block = file.read( sizeChunk );
+            const auto block_beginning = file.pos();
+            const auto block = file.read( sizeChunk );
 
             if ( !fileTextCodec ) {
                 fileTextCodec = indexing_data->getForcedEncoding();
@@ -294,18 +294,20 @@ void IndexOperation::doIndex(IndexingData* indexing_data, qint64 initialPosition
                 // When a end of line has been found...
                 if ( pos_within_block != -1 ) {
                     end = pos_within_block + block_beginning;
-                    const int length = end-pos + additional_spaces;
+                    const uint32_t length = end-pos + additional_spaces;
                     if ( length > max_length )
                         max_length = length;
 
                     pos = end + encodingParams.lineFeedWidth;
                     additional_spaces = 0;
-                    line_positions.append( pos );
+                    line_positions.append( LineOffset( pos ) );
                 }
             }
 
             // Update the shared data
-            indexing_data->addAll( block.length(), max_length, line_positions,
+            indexing_data->addAll( block.length(),
+                                   LineLength( max_length ),
+                                   line_positions,
                    encodingGuess );
 
             // Update the caller for progress indication
@@ -314,16 +316,16 @@ void IndexOperation::doIndex(IndexingData* indexing_data, qint64 initialPosition
         }
 
         // Check if there is a non LF terminated line at the end of the file
-        qint64 file_size = file.size();
+        const auto file_size = file.size();
         if ( !*interruptRequest_ && file_size > pos ) {
             LOG( logWARNING ) <<
                 "Non LF terminated file, adding a fake end of line";
 
             FastLinePositionArray line_position;
-            line_position.append( file_size + 1 );
+            line_position.append( LineOffset( file_size + 1 ) );
             line_position.setFakeFinalLF();
 
-            indexing_data->addAll( 0, 0, line_position, encodingGuess );
+            indexing_data->addAll( 0, 0_length, line_position, encodingGuess );
         }
     }
     else {
@@ -351,7 +353,7 @@ bool FullIndexOperation::start()
     indexing_data_->clear();
     indexing_data_->forceEncoding(forcedEncoding_);
 
-    doIndex( indexing_data_, 0 );
+    doIndex( indexing_data_, 0_offset );
 
     LOG(logDEBUG) << "FullIndexOperation: ... finished counting."
         "interrupt = " << static_cast<bool>(*interruptRequest_);
@@ -364,7 +366,7 @@ bool PartialIndexOperation::start()
     LOG(logDEBUG) << "PartialIndexOperation::start(), file "
         << fileName_.toStdString();
 
-    qint64 initial_position = indexing_data_->getSize();
+    const auto initial_position = LineOffset(indexing_data_->getSize());
 
     LOG(logDEBUG) << "PartialIndexOperation: Starting the count at "
         << initial_position << " ...";

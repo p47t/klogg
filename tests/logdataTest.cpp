@@ -91,8 +91,8 @@ TEST_F( LogDataChanging, changingFile ) {
 
     // Check we have the small file
     ASSERT_THAT( finishedSpy.count(), 1 );
-    ASSERT_THAT( log_data.getNbLine(), 200LL );
-    ASSERT_THAT( log_data.getMaxLength(), SL_LINE_LENGTH );
+    ASSERT_THAT( log_data.getNbLine().get(), 200LL );
+    ASSERT_THAT( log_data.getMaxLength().get(), SL_LINE_LENGTH );
     ASSERT_THAT( log_data.getFileSize(), 200 * (SL_LINE_LENGTH+1LL) );
 
 	auto finishedSpyCount = finishedSpy.count();
@@ -114,8 +114,8 @@ TEST_F( LogDataChanging, changingFile ) {
     // Check we have a bigger file
     ASSERT_GE( changedSpy.count(), 1 );
     ASSERT_THAT( finishedSpy.count(), 2 );
-    ASSERT_THAT( log_data.getNbLine(), 401LL );
-    ASSERT_THAT( log_data.getMaxLength(), SL_LINE_LENGTH );
+    ASSERT_THAT( log_data.getNbLine().get(), 401LL );
+    ASSERT_THAT( log_data.getMaxLength().get(), SL_LINE_LENGTH );
     ASSERT_THAT( log_data.getFileSize(), (qint64) (400 * (SL_LINE_LENGTH+1LL)
             + strlen( partial_line_begin ) ) );
 
@@ -137,8 +137,8 @@ TEST_F( LogDataChanging, changingFile ) {
         // Check we have a bigger file
         ASSERT_GE( changedSpy.count(), 2 );
         ASSERT_THAT( finishedSpy.count(), 1 );
-        ASSERT_THAT( log_data.getNbLine(), 421LL );
-        ASSERT_THAT( log_data.getMaxLength(), SL_LINE_LENGTH );
+        ASSERT_THAT( log_data.getNbLine().get(), 421LL );
+        ASSERT_THAT( log_data.getMaxLength().get(), SL_LINE_LENGTH );
         ASSERT_THAT( log_data.getFileSize(), (qint64) ( 420 * (SL_LINE_LENGTH+1LL)
                 + strlen( partial_line_begin ) + strlen( partial_line_end ) ) );
     }
@@ -155,8 +155,8 @@ TEST_F( LogDataChanging, changingFile ) {
         // Check we have an empty file
         ASSERT_GE( changedSpy.count(), 3 );
         ASSERT_THAT( finishedSpy.count(), 1 );
-        ASSERT_THAT( log_data.getNbLine(), 0LL );
-        ASSERT_THAT( log_data.getMaxLength(), 0 );
+        ASSERT_THAT( log_data.getNbLine().get(), 0LL );
+        ASSERT_THAT( log_data.getMaxLength().get(), 0 );
         ASSERT_THAT( log_data.getFileSize(), 0LL );
     }
 }
@@ -196,8 +196,8 @@ TEST_F( LogDataBehaviour, interruptLoadYieldsAnEmptyFile ) {
     ASSERT_THAT( arguments.at(0).toInt(),
             static_cast<int>( LoadingStatus::Interrupted ) );
 
-    ASSERT_THAT( log_data.getNbLine(), 0LL );
-    ASSERT_THAT( log_data.getMaxLength(), 0 );
+    ASSERT_THAT( log_data.getNbLine().get(), 0LL );
+    ASSERT_THAT( log_data.getMaxLength().get(), 0 );
     ASSERT_THAT( log_data.getFileSize(), 0LL );
 }
 

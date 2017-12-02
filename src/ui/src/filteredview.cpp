@@ -57,9 +57,9 @@ void FilteredView::setVisibility( Visibility visi )
 }
 
 // For the filtered view, a line is always matching!
-AbstractLogView::LineType FilteredView::lineType( int lineNumber ) const
+AbstractLogView::LineType FilteredView::lineType( LineNumber lineNumber ) const
 {
-    LogFilteredData::FilteredLineType type =
+    const auto type =
         logFilteredData_->filteredLineTypeByIndex( lineNumber );
     if ( type == LogFilteredData::Mark )
         return Marked;
@@ -67,20 +67,20 @@ AbstractLogView::LineType FilteredView::lineType( int lineNumber ) const
         return Match;
 }
 
-qint64 FilteredView::displayLineNumber( int lineNumber ) const
+LineNumber FilteredView::displayLineNumber( LineNumber lineNumber ) const
 {
     // Display a 1-based index
-    return logFilteredData_->getMatchingLineNumber( lineNumber ) + 1;
+    return logFilteredData_->getMatchingLineNumber( lineNumber ) + 1_number;
 }
 
-qint64 FilteredView::lineIndex( int lineNumber ) const
+LineNumber FilteredView::lineIndex(LineNumber lineNumber ) const
 {
     return logFilteredData_->getLineIndexNumber( lineNumber );
 }
 
-qint64 FilteredView::maxDisplayLineNumber() const
+LineNumber FilteredView::maxDisplayLineNumber() const
 {
-    return logFilteredData_->getNbTotalLines();
+    return LineNumber( logFilteredData_->getNbTotalLines().get() );
 }
 
 void FilteredView::keyPressEvent( QKeyEvent* keyEvent )
@@ -88,17 +88,21 @@ void FilteredView::keyPressEvent( QKeyEvent* keyEvent )
     bool noModifier = keyEvent->modifiers() == Qt::NoModifier;
 
     if ( keyEvent->key() == Qt::Key_BracketLeft && noModifier ) {
-        for ( qint64 i = static_cast<qint64>( getViewPosition() ) - 1; i >= 0; --i ) {
+        for ( LineNumber i = getViewPosition() - 1_count;; --i ) {
             if ( lineType( i ) == Marked ) {
-                selectAndDisplayLine( static_cast<LineNumber>( i ) );
+                selectAndDisplayLine( i );
+                break;
+            }
+
+            if (i.get() == 0 ) {
                 break;
             }
         }
         keyEvent->accept();
     }
     else if ( keyEvent->key() == Qt::Key_BracketRight && noModifier ) {
-        for ( qint64 i = getViewPosition() + 1;
-                i < logFilteredData_->getNbLine(); ++i ) {
+        for ( LineNumber i = getViewPosition() + 1_count;
+                i.get() < logFilteredData_->getNbLine().get(); ++i ) {
             if ( lineType( i ) == Marked ) {
                 selectAndDisplayLine( static_cast<LineNumber>( i ) );
                 break;

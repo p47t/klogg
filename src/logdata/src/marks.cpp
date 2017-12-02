@@ -20,7 +20,6 @@
 #include "marks.h"
 
 #include "log.h"
-#include "utils.h"
 
 // This file implements the list of marks for a file.
 // It is implemented as a QList which is kept in order when inserting,
@@ -32,7 +31,7 @@ Marks::Marks() : marks_()
 {
 }
 
-void Marks::addMark( qint64 line, QChar mark )
+void Marks::addMark( LineNumber line, QChar mark )
 {
     // Look for the index immediately before
     int index;
@@ -52,15 +51,15 @@ void Marks::addMark( qint64 line, QChar mark )
     mark = mark;
 }
 
-qint64 Marks::getMark( QChar mark ) const
+LineNumber Marks::getMark( QChar mark ) const
 {
     // 'mark' is not used yet
     mark = mark;
 
-    return 0;
+    return 0_number;
 }
 
-bool Marks::isLineMarked( qint64 line ) const
+bool Marks::isLineMarked( LineNumber line ) const
 {
     int index;
     return lookupLineNumber( marks_, line, &index );
@@ -72,7 +71,7 @@ void Marks::deleteMark( QChar mark )
     mark = mark;
 }
 
-void Marks::deleteMark( qint64 line )
+void Marks::deleteMark( LineNumber line )
 {
     int index;
 
