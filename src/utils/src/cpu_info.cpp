@@ -64,7 +64,7 @@ CpuInstructions supportedCpuInstructions()
         if ( f_1_ECX[ 19 ] ) {
             cpuInstructions |= CpuInstructions::SSE41;
         }
-        
+
         if ( f_1_ECX[ 23 ] ) {
             cpuInstructions |= CpuInstructions::POPCNT;
         }
@@ -86,6 +86,11 @@ CpuInstructions supportedCpuInstructions()
     return cpuInstructions;
 }
 #else
+
+bool __builtin_cpu_supports(const char*) {
+    return false;
+}
+
 CpuInstructions supportedCpuInstructions()
 {
     CpuInstructions cpuInstructions = CpuInstructions::NONE;

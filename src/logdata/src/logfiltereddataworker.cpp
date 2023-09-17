@@ -173,7 +173,7 @@ LogFilteredDataWorker::LogFilteredDataWorker( const LogData& sourceLogData )
     : sourceLogData_( sourceLogData )
 {
     operationsPool_.setMaxThreadCount( 1 );
-    LOG_INFO << "Roaring hw " << roaring::internal::croaring_hardware_support();
+    // LOG_INFO << "Roaring hw " << roaring::internal::croaring_hardware_support();
 }
 
 LogFilteredDataWorker::~LogFilteredDataWorker() noexcept
@@ -432,7 +432,7 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
             lines.second.size()
                 << " lines read.";*/
         BlockDataType blockData = new SearchBlockData{chunkStart, std::move(lines)};
-        
+
         const auto lineSourceEndTime = high_resolution_clock::now();
         const auto chunkReadTime
             = duration_cast<microseconds>( lineSourceEndTime - lineSourceStartTime );

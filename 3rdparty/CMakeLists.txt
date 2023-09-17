@@ -29,7 +29,7 @@ cpmaddpackage(
   GITHUB_REPOSITORY
   variar/CRoaring
   GIT_TAG
-  80a8dcf4f683f00cc9be180f8b18de13491b7e27
+  e29535bea457b2c3267b93bec196256ad75eb27b
   EXCLUDE_FROM_ALL
   YES
   OPTIONS
@@ -52,9 +52,9 @@ if(KLOGG_USE_HYPERSCAN)
     NAME
     hyperscan
     GITHUB_REPOSITORY
-    variar/hyperscan
+    VectorCamp/vectorscan
     GIT_TAG
-    0931a40e0cf1d7f92189bc546c3491ed5c113f8b
+    4918f81ea3d1abd18905bac9876d4a1fe2ebdf07
     EXCLUDE_FROM_ALL
     YES
   )
@@ -114,7 +114,7 @@ else()
   target_include_directories(klogg_uchardet_wrapper INTERFACE ${UCHARDET_INCLUDE_DIR})
 endif()
 
-if(${QT_VERSION_MAJOR} EQUAL 6) 
+if(${QT_VERSION_MAJOR} EQUAL 6)
 set(CPM_USE_LOCAL_PACKAGES OFF)
 endif()
 
