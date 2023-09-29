@@ -2639,8 +2639,8 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
 
         if ( ( selection_.isLineSelected( lineNumber ) && selection_.isSingleLine() )
              || selection_.getPortionForLine( lineNumber ).isValid() ) {
-            auto selectionPen = QPen( palette.color( QPalette::Highlight ) );
-            selectionPen.setWidth( 1 );
+            auto selectionPen = QPen( palette.color( QPalette::HighlightedText ) );
+            selectionPen.setWidth( 3 );
             painter->setPen( selectionPen );
             painter->drawLine( xPos - ContentMarginWidth + 1, yPos, viewport()->width(), yPos );
             painter->drawLine( xPos - ContentMarginWidth + 1, yPos + finalLineHeight - 1,
