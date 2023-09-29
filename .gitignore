@@ -60,3 +60,5 @@ cmake-build-relwithdebinfo/
 #website
 website/hugo
 website/resources/
+build
+.direnv
