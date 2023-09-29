@@ -2196,6 +2196,12 @@ void AbstractLogView::updateScrollBars()
         type_safe::narrow_cast<int>( visibleColumns.get() * 7 / 8 ) );
 }
 
+inline QColor blendColor( const QColor& c1, const QColor& c2 )
+{
+    return QColor( ( c1.red() + c2.red() ) / 2, ( c1.green() + c2.green() ) / 2,
+                   ( c1.blue() + c2.blue() ) / 2, 255 );
+}
+
 void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
 {
     // LOG_DEBUG << "devicePixelRatio: " << viewport()->devicePixelRatio();
@@ -2356,6 +2362,12 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
 
         HighlightedMatchRanges highlighterMatches;
 
+        using LineTypeFlags = AbstractLogData::LineTypeFlags;
+        const auto currentLineType = lineType( lineNumber );
+
+        QColor markColor{ "#dbdcff" };
+        bool lineMarked = currentLineType.testFlag( LineTypeFlags::Mark );
+
         if ( selection_.isLineSelected( lineNumber ) && !selection_.isSingleLine() ) {
             // Reverse the selected line
             foreColor = palette.color( QPalette::HighlightedText );
@@ -2391,6 +2403,10 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
                     highlighterMatches.addMatches( patternMatches );
                 }
             }
+        }
+
+        if ( lineMarked ) {
+            backColor = blendColor( backColor, markColor );
         }
 
         const auto untabifyHighlight = [ &logLine ]( const auto& match ) {
@@ -2482,8 +2498,12 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
                         = LineLength{ klogg::isize( expandedLine ) - match.startColumn().get() };
                 }
                 if ( matchLengthInString > 0_length ) {
+                    auto matchBackColor = match.backColor();
+                    if ( lineMarked ) {
+                        matchBackColor = blendColor( matchBackColor, markColor );
+                    }
                     lineDrawer.addChunk( match.startColumn(), matchEnd, match.foreColor(),
-                                         match.backColor() );
+                                         matchBackColor );
                 }
             }
 
@@ -2523,8 +2543,6 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
         const int middleXLine = BulletAreaWidth / 2;
         const int middleYLine = yPos + ( fontHeight / 2 );
 
-        using LineTypeFlags = AbstractLogData::LineTypeFlags;
-        const auto currentLineType = lineType( lineNumber );
         if ( currentLineType.testFlag( LineTypeFlags::Mark ) ) {
             // A pretty arrow if the line is marked
             const QPointF points[ 7 ] = {
