@@ -250,7 +250,7 @@ void HighlighterSetEdit::updatePropertyFields()
     }
     else {
         highlighterEdit_->reset();
-        
+
         removeHighlighterButton->setEnabled( false );
         upHighlighterButton->setEnabled( false );
         downHighlighterButton->setEnabled( false );
@@ -281,7 +281,7 @@ void HighlighterSetEdit::updateHighlighterProperties()
 void HighlighterSetEdit::populateHighlighterList()
 {
     highlighterListWidget->clear();
-    for ( const Highlighter& highlighter : qAsConst( highlighterSet_.highlighterList_ ) ) {
+    for ( const Highlighter& highlighter : std::as_const( highlighterSet_.highlighterList_ ) ) {
         auto* new_item = new QListWidgetItem( highlighter.pattern() );
         // new_item->setFlags( Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsEnabled );
         new_item->setForeground( QBrush( highlighter.foreColor() ) );

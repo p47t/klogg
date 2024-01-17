@@ -38,13 +38,13 @@ class FontUtils {
 #if QT_VERSION < QT_VERSION_CHECK( 6, 0, 0 )
         QFontDatabase database;
         auto families = database.families();
-        for ( const auto& family : qAsConst( families ) ) {
+        for ( const auto& family : std::as_const( families ) ) {
             if ( database.isFixedPitch( family ) )
                 fixedFamilies << family;
         }
 #else
         auto families = QFontDatabase::families();
-        for ( const auto& family : qAsConst( families ) ) {
+        for ( const auto& family : std::as_const( families ) ) {
             if ( QFontDatabase::isFixedPitch( family ) )
                 fixedFamilies << family;
         }

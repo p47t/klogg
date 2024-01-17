@@ -1612,7 +1612,7 @@ void MainWindow::dropEvent( QDropEvent* event )
 {
     QList<QUrl> urls = event->mimeData()->urls();
 
-    for ( const auto& url : qAsConst( urls ) ) {
+    for ( const auto& url : std::as_const( urls ) ) {
         auto fileName = url.toLocalFile();
         if ( fileName.isEmpty() )
             continue;
@@ -1752,7 +1752,7 @@ bool MainWindow::loadFile( const QString& fileName, bool followFile )
             const auto previousViewContext = [ &fileName ]() {
                 const auto& session = SessionInfo::getSynced();
                 const auto& windows = session.windows();
-                for ( const auto& windowId : qAsConst( windows ) ) {
+                for ( const auto& windowId : std::as_const( windows ) ) {
                     const auto openedFiles = session.openFiles( windowId );
                     const auto existingContext
                         = std::find_if( openedFiles.begin(), openedFiles.end(),

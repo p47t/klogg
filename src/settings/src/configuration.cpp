@@ -138,13 +138,13 @@ void Configuration::retrieveFromStorage( QSettings& settings )
                       DefaultConfiguration.enableMainSearchHighlightVariance_ )
               .toBool();
 
-    mainSearchBackColor_.setNamedColor(
+    mainSearchBackColor_.fromString(
         settings
             .value( "regexpType.mainBackColor",
                     DefaultConfiguration.mainSearchBackColor_.name( QColor::HexArgb ) )
             .toString() );
 
-    qfBackColor_.setNamedColor(
+    qfBackColor_.fromString(
         settings
             .value( "regexpType.quickfindBackColor",
                     DefaultConfiguration.qfBackColor_.name( QColor::HexArgb ) )
