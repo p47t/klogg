@@ -1751,7 +1751,7 @@ LinesCount AbstractLogView::getNbVisibleLines() const
 LineLength AbstractLogView::getNbVisibleCols() const
 {
     const auto scrollBarWidth = verticalScrollBar()->isVisible() ? verticalScrollBar()->width() : 0;
-    return LineLength{ ( viewport()->width() - leftMarginPx_ - scrollBarWidth ) / charWidth_ + 1 };
+    return LineLength{ ( viewport()->width() - leftMarginPx_ - scrollBarWidth ) / charWidth_ - 4 };
 }
 
 // Converts the mouse x, y coordinates to the line number in the file
