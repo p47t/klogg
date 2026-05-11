@@ -82,7 +82,11 @@ class WriteFileThread : public QThread {
     int result_{};
 };
 
+} // anonymous namespace
+
 #include "logdata_test.moc"
+
+namespace {
 
 #ifdef _WIN32
 void writeDataToFileBackground( QFile& file, int numberOfLines = 200,
