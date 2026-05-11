@@ -45,6 +45,7 @@ namespace logging {
 bool needLogging( QtMsgType type );
 } // namespace logging
 
+#if QT_VERSION < QT_VERSION_CHECK( 6, 0, 0 )
 template <typename T>
 QDebug operator<<( QDebug dbg, const std::optional<T>& opt )
 {
@@ -53,6 +54,7 @@ QDebug operator<<( QDebug dbg, const std::optional<T>& opt )
 
     return dbg;
 }
+#endif
 
 inline QDebug operator<<( QDebug dbg, const std::chrono::microseconds& duration )
 {

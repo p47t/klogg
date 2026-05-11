@@ -304,6 +304,14 @@ cpmaddpackage(
   "TBB_STRICT OFF"
 )
 
+# Expose the bundled TBB include dir at parent scope so the top-level
+# CMakeLists can prepend it to every target — it must outrank any
+# /opt/homebrew/include (Qt's CMAKE_PREFIX_PATH leaks Homebrew's newer
+# TBB headers, which mismatch our older vendored libtbb.a).
+if(tbb_SOURCE_DIR)
+  set(KLOGG_BUNDLED_TBB_INCLUDE_DIR "${tbb_SOURCE_DIR}/include" PARENT_SCOPE)
+endif()
+
 if(WIN32)
   set(BUILD_SHARED_LIBS OFF)
 endif()

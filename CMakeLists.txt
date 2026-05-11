@@ -220,6 +220,15 @@ set(BUILD_SHARED_LIBS OFF)
 add_custom_target(ci_build)
 
 add_subdirectory(3rdparty)
+
+# Make sure the bundled TBB include path wins over Homebrew's newer
+# TBB headers (which leak via CMAKE_PREFIX_PATH from Qt). Use SYSTEM
+# so the path is emitted as -isystem and ranked among Apple Clang's
+# system search list (where /opt/homebrew/include also lives).
+if(KLOGG_BUNDLED_TBB_INCLUDE_DIR)
+  include_directories(BEFORE SYSTEM ${KLOGG_BUNDLED_TBB_INCLUDE_DIR})
+endif()
+
 add_subdirectory(src)
 add_subdirectory(website)
 
