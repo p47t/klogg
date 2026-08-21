@@ -282,8 +282,51 @@ cpmaddpackage(
   OPTIONS
   "BUILD_TEST_APP OFF"
 )
+# efsw's kqueue and generic backends, the ones used on macOS, start watching
+# every subdirectory that appears in a watched directory even when the watch is
+# not recursive: unlike addAll()/addChilds(), the DirsCreated handlers in
+# WatcherKqueue::rescan() and DirWatcherGeneric::watch() never check Recursive.
+# klogg only ever asks for non-recursive watches (see src/filewatch), but each
+# unwanted watcher costs a kqueue plus one file descriptor per file it holds, so
+# watching a directory that other processes keep creating subdirectories in
+# grows without bound until klogg runs out of descriptors. The system temp
+# directory is the usual victim, because that is where klogg keeps the
+# temporaries it opens for clipboard, download and archive contents.
+# FileWatcherKqueue::run() holds the watch mutex for a whole scan pass, so once
+# there are thousands of watchers the UI thread hangs in
+# FileWatcherKqueue::addWatch(). Unfixed upstream as of efsw 1.6.3.
+function(klogg_patch_efsw_non_recursive_watch source_file original replacement)
+  file(READ "${source_file}" contents)
+
+  string(FIND "${contents}" "${replacement}" patch_offset)
+  if(NOT patch_offset EQUAL -1)
+    return()
+  endif()
+
+  string(FIND "${contents}" "${original}" original_offset)
+  if(original_offset EQUAL -1)
+    message(FATAL_ERROR "Failed to guard non-recursive watch in ${source_file}")
+  endif()
+
+  string(REPLACE "${original}" "${replacement}" contents "${contents}")
+  file(WRITE "${source_file}" "${contents}")
+  message(STATUS "Guarded non-recursive watch in ${source_file}")
+endfunction()
+
 if(efsw_ADDED)
   target_compile_definitions(efsw PRIVATE EFSW_FSEVENTS_NOT_SUPPORTED)
+
+  klogg_patch_efsw_non_recursive_watch(
+    "${efsw_SOURCE_DIR}/src/efsw/WatcherKqueue.cpp"
+    "\t\t\taddWatch( ( *it ).Filepath, Listener, Recursive, this );"
+    "\t\t\tif ( Recursive ) {\n\t\t\t\taddWatch( ( *it ).Filepath, Listener, Recursive, this );\n\t\t\t}"
+  )
+
+  klogg_patch_efsw_non_recursive_watch(
+    "${efsw_SOURCE_DIR}/src/efsw/DirWatcherGeneric.cpp"
+    "\t\t\tcreateDirectory( ( *it ).Filepath );"
+    "\t\t\tif ( Recursive ) {\n\t\t\t\tcreateDirectory( ( *it ).Filepath );\n\t\t\t}"
+  )
 endif()
 
 if(WIN32)
