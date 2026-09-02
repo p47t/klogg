@@ -222,6 +222,8 @@ class CrawlerWidget : public QSplitter,
     void loadingFinishedHandler( LoadingStatus status );
     // Manages the info lines to inform the user the file has changed.
     void fileChangedHandler( MonitoredFileStatus );
+    // Reloads the annotation sidecar when it is the file that changed on disk.
+    void annotationFileChangedHandler( const QString& fileName );
 
     void searchForward();
     void searchBackward();
@@ -437,6 +439,15 @@ class CrawlerWidget : public QSplitter,
 
     klogg::vector<LineNumber> savedMarkedLines_;
     LogFilteredData::AnnotationMap savedAnnotations_;
+
+    // Sidecar file holding annotations written outside klogg, and the lines it
+    // currently owns so that a reload can replace exactly those
+    QString annotationFilePath_;
+    klogg::vector<LineNumber> annotationFileLines_;
+
+    void watchAnnotationFile();
+    void loadAnnotationFile();
+    void refreshAfterAnnotationChange();
 
     // Whether annotations are drawn over the annotated lines in both views
     bool annotationsVisible_ = true;

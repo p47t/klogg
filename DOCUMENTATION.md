@@ -221,6 +221,64 @@ will remove all color labels.
 The colors that are used for text highlight can be configured from the color labels
 tab of highlighters configuration dialog.
 
+### Annotations
+
+A line can be given a comment explaining why it matters. Use `Annotate...`
+in the context menu or the `Shift+M` shortcut, and the comment is drawn as
+a right-aligned label over the line itself, in both the top and the bottom
+view.
+
+Annotating a line also marks it, so annotated lines are easy to find again:
+`]` and `[` jump to the next and previous one, they appear in the overview
+map on the right, and setting the bottom view to `Marks` lists all of them
+at once. Their mark arrow is drawn in a different colour from an ordinary
+mark, so annotated lines stay recognisable in a file with many marks, and
+also when the labels are hidden. Removing a comment removes that mark
+again.
+
+`Ctrl+Shift+M`, or `Show annotations` in the `View` menu, shows and hides
+the labels. When text wrap is on, the first row of an annotated line is
+wrapped early so that the label does not cover any of the log text.
+
+Comments written in *klogg* are stored in the session, per file, along with
+the marks. They survive a reload but are dropped when the file is
+truncated, because the line numbers no longer refer to the same lines.
+
+#### Annotations from other programs
+
+Annotations can also come from outside *klogg*, so that a script, an
+analysis tool or an AI agent can comment on a log. Such comments live in a
+sidecar file named after the log file: the sidecar of `/var/log/app.log` is
+`/var/log/app.log.klogg-annotations.json`. *klogg* reads it when the log is
+opened and watches it afterwards, so comments appear as soon as the file is
+written, without reopening the log.
+
+```json
+{
+  "version": 1,
+  "annotations": [
+    { "line": 42, "sha1": "7b1220eacb52d42334a2cb0d55505a3933103d8d", "text": "connection pool exhausted" },
+    { "line": 87, "text": "no anchor, trusted as is" }
+  ]
+}
+```
+
+`line` is 1-based, the number *klogg* and other tools display. `text` is the
+comment. `sha1` is optional and holds the SHA-1 of the line's UTF-8 bytes
+without its line terminator; it anchors the comment to the text rather than
+to a position. When the line has moved, *klogg* looks for the matching text
+near the stated line and puts the comment where the text now is. When no
+matching line is found the comment is dropped rather than shown against the
+wrong line, so a sidecar written against an older version of a log does not
+produce misleading comments.
+
+Comments from the sidecar are not copied into the session: the file remains
+their only source, and neither are the marks they imply, so an entry the
+sidecar later drops does not leave a mark behind. Editing a sidecar comment
+in *klogg* therefore lasts only until the file is read again. Comments
+written in *klogg* on other lines are left alone when the sidecar is
+reloaded.
+
 ### Browsing changing log files
 
 *klogg* can display and search through logs while they are written to

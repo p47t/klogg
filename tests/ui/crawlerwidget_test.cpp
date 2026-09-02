@@ -19,6 +19,7 @@
 
 #include <catch2/catch.hpp>
 
+#include <QFile>
 #include <QSignalSpy>
 #include <QTemporaryFile>
 #include <QTest>
@@ -177,6 +178,21 @@ struct CrawlerWidget::access_by<CrawlerWidgetPrivate> {
     void setTextWrap( bool wrap )
     {
         crawler->logMainView_->textWrapSet( wrap );
+    }
+
+    QString annotationFilePath()
+    {
+        return crawler->annotationFilePath_;
+    }
+
+    void reloadAnnotationFile()
+    {
+        crawler->loadAnnotationFile();
+    }
+
+    QString viewContext()
+    {
+        return crawler->doGetViewContext()->toString();
     }
 };
 
@@ -362,6 +378,99 @@ SCENARIO( "Crawler widget search", "[ui]" )
                 {
                     REQUIRE( crawlerVisitor.annotationOfLine( 3_lnum ).isEmpty() );
                     REQUIRE( crawlerVisitor.grabMainView() == withoutAnnotation );
+                }
+            }
+        }
+
+        WHEN( "an external program writes the annotation sidecar" )
+        {
+            const auto sidecarPath = crawlerVisitor.annotationFilePath();
+            REQUIRE( sidecarPath == file.fileName() + ".klogg-annotations.json" );
+
+            // QTemporaryFile only cleans up the log itself, so the sidecar
+            // written next to it has to be removed by hand
+            struct SidecarCleanup {
+                QString path;
+                ~SidecarCleanup()
+                {
+                    QFile::remove( path );
+                }
+            } cleanup{ sidecarPath };
+
+            const auto writeSidecar = [ &sidecarPath ]( const QString& contents ) {
+                QFile sidecar{ sidecarPath };
+                REQUIRE( sidecar.open( QIODevice::WriteOnly | QIODevice::Truncate ) );
+                sidecar.write( contents.toUtf8() );
+                sidecar.close();
+            };
+
+            writeSidecar( R"({"version":1,"annotations":[
+                {"line":4,"text":"found by an external tool"}]})" );
+            crawlerVisitor.reloadAnnotationFile();
+
+            THEN( "the comment shows up on the line it names" )
+            {
+                REQUIRE( crawlerVisitor.annotationOfLine( 3_lnum ) == "found by an external tool" );
+            }
+
+            AND_WHEN( "a comment is added in klogg itself" )
+            {
+                crawlerVisitor.annotate( 10_lnum, "mine" );
+
+                AND_WHEN( "the sidecar is rewritten without its earlier entry" )
+                {
+                    writeSidecar( R"({"version":1,"annotations":[
+                        {"line":8,"text":"a different line now"}]})" );
+                    crawlerVisitor.reloadAnnotationFile();
+
+                    THEN( "the sidecar's own comments are replaced" )
+                    {
+                        REQUIRE( crawlerVisitor.annotationOfLine( 3_lnum ).isEmpty() );
+                        REQUIRE( crawlerVisitor.annotationOfLine( 7_lnum )
+                                 == "a different line now" );
+                    }
+
+                    THEN( "the comment written in klogg is left alone" )
+                    {
+                        REQUIRE( crawlerVisitor.annotationOfLine( 10_lnum ) == "mine" );
+                    }
+                }
+            }
+
+            AND_WHEN( "the sidecar is removed" )
+            {
+                REQUIRE( QFile::remove( sidecarPath ) );
+                crawlerVisitor.reloadAnnotationFile();
+
+                THEN( "its comments go away" )
+                {
+                    REQUIRE( crawlerVisitor.annotationOfLine( 3_lnum ).isEmpty() );
+                }
+            }
+
+            AND_WHEN( "the session is saved" )
+            {
+                crawlerVisitor.annotate( 10_lnum, "written in klogg" );
+                const auto context = crawlerVisitor.viewContext();
+
+                THEN( "comments written in klogg are stored" )
+                {
+                    REQUIRE( context.contains( "written in klogg" ) );
+                }
+
+                THEN( "comments owned by the sidecar are not" )
+                {
+                    // The sidecar is their source of truth; keeping a second
+                    // copy would resurrect entries it later drops
+                    REQUIRE_FALSE( context.contains( "found by an external tool" ) );
+                }
+
+                THEN( "the mark implied by a sidecar comment is not saved either" )
+                {
+                    // Line 4 in the sidecar is index 3, and the only mark in the
+                    // session should be the one implied by the klogg comment on
+                    // line index 10
+                    REQUIRE( context.contains( "\"M\":[10]" ) );
                 }
             }
         }

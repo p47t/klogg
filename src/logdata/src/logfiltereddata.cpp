@@ -349,11 +349,16 @@ void LogFilteredData::setAnnotation( LineNumber line, const QString& text )
         return;
     }
 
+    // An annotated line is marked too, so that everything that already finds
+    // marks - the next/previous mark shortcuts, the marks filter in the bottom
+    // view, the overview map - finds annotations without knowing about them.
     if ( text.isEmpty() ) {
         annotations_.erase( line );
+        deleteMark( line );
     }
     else {
         annotations_[ line ] = text;
+        addMark( line );
     }
 }
 
@@ -375,11 +380,17 @@ QString LogFilteredData::annotationByIndex( LineNumber index ) const
 
 void LogFilteredData::deleteAnnotation( LineNumber line )
 {
-    annotations_.erase( line );
+    if ( annotations_.erase( line ) > 0 ) {
+        deleteMark( line );
+    }
 }
 
 void LogFilteredData::clearAnnotations()
 {
+    for ( const auto& annotation : annotations_ ) {
+        deleteMark( annotation.first );
+    }
+
     annotations_.clear();
 }
 

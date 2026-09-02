@@ -255,6 +255,17 @@ SCENARIO( "annotations in filtered log data", "[logdata]" )
                 REQUIRE( filtered_data->annotationByLine( 11_lnum ).isEmpty() );
             }
 
+            THEN( "Annotated lines are marked, so mark navigation finds them" )
+            {
+                REQUIRE( filtered_data->lineTypeByLine( 10_lnum ).testFlag( LineTypeFlags::Mark ) );
+                REQUIRE( filtered_data->lineTypeByLine( 25_lnum ).testFlag( LineTypeFlags::Mark ) );
+                REQUIRE( filtered_data->getNbMarks() == 2_lcount );
+
+                const auto markAfter = filtered_data->getMarkAfter( 10_lnum );
+                REQUIRE( markAfter.has_value() );
+                REQUIRE( *markAfter == 25_lnum );
+            }
+
             AND_WHEN( "Annotating the same line again" )
             {
                 filtered_data->setAnnotation( 10_lnum, "replaced" );
@@ -270,11 +281,13 @@ SCENARIO( "annotations in filtered log data", "[logdata]" )
             {
                 filtered_data->setAnnotation( 10_lnum, QString{} );
 
-                THEN( "Annotation is removed" )
+                THEN( "Annotation is removed, and so is the mark it implied" )
                 {
                     REQUIRE( filtered_data->annotationByLine( 10_lnum ).isEmpty() );
                     REQUIRE_FALSE( filtered_data->lineTypeByLine( 10_lnum ).testFlag(
                         LineTypeFlags::Annotation ) );
+                    REQUIRE_FALSE(
+                        filtered_data->lineTypeByLine( 10_lnum ).testFlag( LineTypeFlags::Mark ) );
                     REQUIRE( filtered_data->getAnnotations().size() == 1 );
                 }
             }
@@ -283,9 +296,11 @@ SCENARIO( "annotations in filtered log data", "[logdata]" )
             {
                 filtered_data->deleteAnnotation( 10_lnum );
 
-                THEN( "Annotation is removed" )
+                THEN( "Annotation is removed, and so is the mark it implied" )
                 {
                     REQUIRE( filtered_data->annotationByLine( 10_lnum ).isEmpty() );
+                    REQUIRE_FALSE(
+                        filtered_data->lineTypeByLine( 10_lnum ).testFlag( LineTypeFlags::Mark ) );
                     REQUIRE( filtered_data->getAnnotations().size() == 1 );
                 }
             }
@@ -294,9 +309,25 @@ SCENARIO( "annotations in filtered log data", "[logdata]" )
             {
                 filtered_data->clearAnnotations();
 
-                THEN( "All annotations are removed" )
+                THEN( "All annotations and their marks are removed" )
                 {
                     REQUIRE( filtered_data->getAnnotations().empty() );
+                    REQUIRE( filtered_data->getNbMarks() == 0_lcount );
+                }
+            }
+
+            AND_WHEN( "A line marked by hand is annotated and then unannotated" )
+            {
+                filtered_data->addMark( 30_lnum );
+                filtered_data->setAnnotation( 30_lnum, "comment on a marked line" );
+                filtered_data->setAnnotation( 30_lnum, QString{} );
+
+                THEN( "The hand mark goes with the annotation" )
+                {
+                    // An annotation owns the mark it implies; a mark that was
+                    // already there is not tracked separately
+                    REQUIRE_FALSE(
+                        filtered_data->lineTypeByLine( 30_lnum ).testFlag( LineTypeFlags::Mark ) );
                 }
             }
 
@@ -329,10 +360,11 @@ SCENARIO( "annotations in filtered log data", "[logdata]" )
                 REQUIRE( filtered_data->annotationByIndex( 0_lnum ).isEmpty() );
             }
 
-            THEN( "Line type by index reports both match and annotation" )
+            THEN( "Line type by index reports match, annotation and the implied mark" )
             {
                 REQUIRE( toFlags( filtered_data->lineTypeByIndex( 1_lnum ) )
-                         == toFlags( LineTypeFlags::Match | LineTypeFlags::Annotation ) );
+                         == toFlags( LineTypeFlags::Match | LineTypeFlags::Annotation
+                                     | LineTypeFlags::Mark ) );
             }
         }
     }

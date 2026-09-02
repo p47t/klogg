@@ -2706,8 +2706,16 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
                 QPointF( 1, middleYLine + 2 ),
             };
 
-            painter->setBrush( currentLineType.testFlag( LineTypeFlags::Match ) ? markedMatchBrush
-                                                                                : markBrush );
+            // Every annotated line is marked, so colour its arrow differently:
+            // in a file with many marks the annotated ones stay picked out
+            if ( currentLineType.testFlag( LineTypeFlags::Annotation ) ) {
+                painter->setBrush( annotationBulletBrush );
+            }
+            else {
+                painter->setBrush( currentLineType.testFlag( LineTypeFlags::Match )
+                                       ? markedMatchBrush
+                                       : markBrush );
+            }
             painter->drawPolygon( points, 7 );
         }
         else {
@@ -2715,6 +2723,8 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
             painter->setRenderHint( QPainter::Antialiasing );
 
             QBrush brush = normalBulletBrush;
+            // Reachable for an annotated line only after the marks were cleared
+            // by hand, which leaves the annotations in place.
             // An annotation takes precedence over a match here: matches stay
             // visible through highlighting, while annotations can be hidden.
             if ( currentLineType.testFlag( LineTypeFlags::Annotation ) )

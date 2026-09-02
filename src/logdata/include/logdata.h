@@ -91,6 +91,8 @@ class LogData : public AbstractLogData {
     // Creates a new filtered data.
     // ownership is passed to the caller
     std::unique_ptr<LogFilteredData> getNewFilteredData() const;
+    // Returns the name of the attached file, empty if none
+    QString getFileName() const;
     // Returns the size if the file in bytes
     qint64 getFileSize() const;
     // Returns the last modification date for the file.

@@ -53,6 +53,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QCompleter>
+#include <QFileInfo>
 #include <QInputDialog>
 #include <QJsonDocument>
 #include <QKeySequence>
@@ -69,8 +70,10 @@
 
 #include "crawlerwidget.h"
 
+#include "annotationfile.h"
 #include "configuration.h"
 #include "dispatch_to.h"
+#include "filewatcher.h"
 #include "fontutils.h"
 #include "infoline.h"
 #include "quickfindpattern.h"
@@ -384,11 +387,23 @@ void CrawlerWidget::doSetViewContext( const QString& view_context )
 
 std::shared_ptr<const ViewContextInterface> CrawlerWidget::doGetViewContext() const
 {
+    // Annotations owned by the sidecar are that file's business, not the
+    // session's: saving them here would resurrect entries it has since dropped,
+    // and there would be no way to tell the two copies apart on the next run.
+    // Their marks go the same way, or a dropped entry would leave behind a mark
+    // pointing at nothing.
+    auto sessionAnnotations = logFilteredData_->getAnnotations();
+    auto sessionMarks = logFilteredData_->getMarks();
+    for ( const auto& line : annotationFileLines_ ) {
+        sessionAnnotations.erase( line );
+        sessionMarks.removeAll( line );
+    }
+
     auto context = std::make_shared<const CrawlerWidgetContext>(
         sizes(), ( !matchCaseButton_->isChecked() ), searchRefreshButton_->isChecked(),
         logMainView_->isFollowEnabled(), useRegexpButton_->isChecked(), inverseButton_->isChecked(),
-        booleanButton_->isChecked(), logFilteredData_->getMarks(),
-        logFilteredData_->getAnnotations(), annotationsVisible_ );
+        booleanButton_->isChecked(), std::move( sessionMarks ), std::move( sessionAnnotations ),
+        annotationsVisible_ );
 
     return static_cast<std::shared_ptr<const ViewContextInterface>>( context );
 }
@@ -631,6 +646,15 @@ void CrawlerWidget::markLinesFromMain( const klogg::vector<LineNumber>& lines )
     update();
 }
 
+void CrawlerWidget::refreshAfterAnnotationChange()
+{
+    // Same refresh markLinesFromMain does: an annotation carries a mark with it
+    filteredView_->updateData();
+    logMainView_->updateData();
+    overview_.updateData( logData_->getNbLine() );
+    update();
+}
+
 void CrawlerWidget::annotateLineFromMain( LineNumber line, const QString& text )
 {
     if ( line >= logData_->getNbLine() ) {
@@ -639,10 +663,10 @@ void CrawlerWidget::annotateLineFromMain( LineNumber line, const QString& text )
 
     logFilteredData_->setAnnotation( line, text );
 
-    // Both views draw the annotation, and the bullet colour depends on it
-    filteredView_->forceRefresh();
-    logMainView_->forceRefresh();
-    update();
+    // Annotating marks the line, which can change what the filtered view shows
+    // and where the overview puts its dots, so refresh the data and not just
+    // the painting
+    refreshAfterAnnotationChange();
 }
 
 void CrawlerWidget::annotateLineFromFiltered( LineNumber line, const QString& text )
@@ -798,6 +822,8 @@ void CrawlerWidget::loadingFinishedHandler( LoadingStatus status )
     // Also change the data available icon
     if ( firstLoadDone_ ) {
         changeDataStatus( DataStatus::NEW_DATA );
+        // The log grew or was reloaded, so anchors may resolve differently now
+        loadAnnotationFile();
     }
     else {
         firstLoadDone_ = true;
@@ -810,11 +836,76 @@ void CrawlerWidget::loadingFinishedHandler( LoadingStatus status )
         // Applied once: annotations live in the filtered data from now on, and
         // reapplying them on a later reload would resurrect deleted ones.
         savedAnnotations_.clear();
+        watchAnnotationFile();
         logMainView_->setFocus();
     }
 
     loadingInProgress_ = false;
     Q_EMIT loadingFinished( status );
+}
+
+void CrawlerWidget::watchAnnotationFile()
+{
+    if ( !annotationFilePath_.isEmpty() ) {
+        return;
+    }
+
+    annotationFilePath_ = AnnotationFile::pathForLogFile( logData_->getFileName() );
+
+    // The sidecar need not exist yet: the watcher follows the containing
+    // directory, which is the log's own, so it reports the file being created.
+    auto& watcher = FileWatcher::getFileWatcher();
+    watcher.addFile( annotationFilePath_ );
+    connect( &watcher, &FileWatcher::fileChanged, this,
+             &CrawlerWidget::annotationFileChangedHandler, Qt::QueuedConnection );
+
+    loadAnnotationFile();
+}
+
+void CrawlerWidget::annotationFileChangedHandler( const QString& fileName )
+{
+    if ( annotationFilePath_.isEmpty() ) {
+        return;
+    }
+
+    if ( QFileInfo( fileName ).absoluteFilePath()
+         != QFileInfo( annotationFilePath_ ).absoluteFilePath() ) {
+        // Some other watched file, the log itself included
+        return;
+    }
+
+    loadAnnotationFile();
+}
+
+void CrawlerWidget::loadAnnotationFile()
+{
+    if ( annotationFilePath_.isEmpty() ) {
+        return;
+    }
+
+    const auto loaded = AnnotationFile::load( annotationFilePath_, *logData_ );
+    if ( !loaded.error.isEmpty() ) {
+        LOG_ERROR << "Failed to read annotations from " << annotationFilePath_ << ": "
+                  << loaded.error;
+        return;
+    }
+
+    // Drop only what the sidecar put there last time, so that annotations
+    // written in klogg itself survive a reload of the file
+    for ( const auto& line : annotationFileLines_ ) {
+        if ( loaded.annotations.count( line ) == 0 ) {
+            logFilteredData_->deleteAnnotation( line );
+        }
+    }
+
+    annotationFileLines_.clear();
+    annotationFileLines_.reserve( loaded.annotations.size() );
+    for ( const auto& annotation : loaded.annotations ) {
+        logFilteredData_->setAnnotation( annotation.first, annotation.second );
+        annotationFileLines_.push_back( annotation.first );
+    }
+
+    refreshAfterAnnotationChange();
 }
 
 void CrawlerWidget::fileChangedHandler( MonitoredFileStatus status )

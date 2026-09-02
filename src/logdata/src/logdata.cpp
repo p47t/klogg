@@ -126,6 +126,11 @@ void LogData::interruptLoading()
     operationQueue_.interrupt();
 }
 
+QString LogData::getFileName() const
+{
+    return indexingFileName_;
+}
+
 qint64 LogData::getFileSize() const
 {
     return IndexingData::ConstAccessor{ indexing_data_.get() }.getIndexedSize();

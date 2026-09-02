@@ -126,6 +126,10 @@ class LogFilteredData : public AbstractLogData {
     QList<LineNumber> getMarks() const;
 
     // Annotations interface
+    //
+    // An annotated line is kept marked, so that mark navigation, the marks
+    // filter and the overview map all locate annotations for free. Removing an
+    // annotation removes that mark again.
 
     using AnnotationMap = std::map<LineNumber, QString>;
 
