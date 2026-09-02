@@ -212,6 +212,132 @@ SCENARIO( "marks in filtered log data", "[logdata]" )
     }
 }
 
+SCENARIO( "annotations in filtered log data", "[logdata]" )
+{
+    LogDataLoader logDataLoader;
+
+    GIVEN( "loaded log data" )
+    {
+        auto filtered_data = logDataLoader.log_data.getNewFilteredData();
+
+        WHEN( "Annotating a line outside file" )
+        {
+            filtered_data->setAnnotation( LineNumber( SL_NB_LINES + 25 ), "out of range" );
+
+            THEN( "No annotation stored" )
+            {
+                REQUIRE( filtered_data->getAnnotations().empty() );
+            }
+        }
+
+        WHEN( "Annotating lines in log file" )
+        {
+            filtered_data->setAnnotation( 10_lnum, "first comment" );
+            filtered_data->setAnnotation( 25_lnum, "second comment" );
+
+            THEN( "Annotation text is stored per line" )
+            {
+                REQUIRE( filtered_data->annotationByLine( 10_lnum ) == "first comment" );
+                REQUIRE( filtered_data->annotationByLine( 25_lnum ) == "second comment" );
+                REQUIRE( filtered_data->getAnnotations().size() == 2 );
+            }
+
+            THEN( "Annotated lines report the annotation flag" )
+            {
+                REQUIRE( filtered_data->lineTypeByLine( 10_lnum ).testFlag(
+                    LineTypeFlags::Annotation ) );
+                REQUIRE_FALSE( filtered_data->lineTypeByLine( 11_lnum ).testFlag(
+                    LineTypeFlags::Annotation ) );
+            }
+
+            THEN( "Lines without annotation return empty text" )
+            {
+                REQUIRE( filtered_data->annotationByLine( 11_lnum ).isEmpty() );
+            }
+
+            AND_WHEN( "Annotating the same line again" )
+            {
+                filtered_data->setAnnotation( 10_lnum, "replaced" );
+
+                THEN( "Annotation is replaced, not duplicated" )
+                {
+                    REQUIRE( filtered_data->annotationByLine( 10_lnum ) == "replaced" );
+                    REQUIRE( filtered_data->getAnnotations().size() == 2 );
+                }
+            }
+
+            AND_WHEN( "Setting an empty annotation" )
+            {
+                filtered_data->setAnnotation( 10_lnum, QString{} );
+
+                THEN( "Annotation is removed" )
+                {
+                    REQUIRE( filtered_data->annotationByLine( 10_lnum ).isEmpty() );
+                    REQUIRE_FALSE( filtered_data->lineTypeByLine( 10_lnum ).testFlag(
+                        LineTypeFlags::Annotation ) );
+                    REQUIRE( filtered_data->getAnnotations().size() == 1 );
+                }
+            }
+
+            AND_WHEN( "Delete annotation" )
+            {
+                filtered_data->deleteAnnotation( 10_lnum );
+
+                THEN( "Annotation is removed" )
+                {
+                    REQUIRE( filtered_data->annotationByLine( 10_lnum ).isEmpty() );
+                    REQUIRE( filtered_data->getAnnotations().size() == 1 );
+                }
+            }
+
+            AND_WHEN( "Clear annotations" )
+            {
+                filtered_data->clearAnnotations();
+
+                THEN( "All annotations are removed" )
+                {
+                    REQUIRE( filtered_data->getAnnotations().empty() );
+                }
+            }
+
+            AND_WHEN( "Marks are cleared" )
+            {
+                filtered_data->addMark( 10_lnum );
+                filtered_data->clearMarks();
+
+                THEN( "Annotations are left alone" )
+                {
+                    REQUIRE( filtered_data->annotationByLine( 10_lnum ) == "first comment" );
+                }
+            }
+        }
+
+        WHEN( "Searched for regex with annotated matches" )
+        {
+            SafeQSignalSpy searchProgressSpy{ filtered_data.get(),
+                                              &LogFilteredData::searchProgressed };
+
+            runSearch( filtered_data.get(), "this is line [0-9]{5}9", searchProgressSpy );
+
+            // Every 10th line matches, so filtered index 1 is source line 19
+            const auto sourceLine = filtered_data->getMatchingLineNumber( 1_lnum );
+            filtered_data->setAnnotation( sourceLine, "annotated match" );
+
+            THEN( "Annotation is reachable by filtered index" )
+            {
+                REQUIRE( filtered_data->annotationByIndex( 1_lnum ) == "annotated match" );
+                REQUIRE( filtered_data->annotationByIndex( 0_lnum ).isEmpty() );
+            }
+
+            THEN( "Line type by index reports both match and annotation" )
+            {
+                REQUIRE( toFlags( filtered_data->lineTypeByIndex( 1_lnum ) )
+                         == toFlags( LineTypeFlags::Match | LineTypeFlags::Annotation ) );
+            }
+        }
+    }
+}
+
 SCENARIO( "search for regex", "[logdata]" )
 {
     LogDataLoader logDataLoader;

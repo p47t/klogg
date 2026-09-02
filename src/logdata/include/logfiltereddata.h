@@ -41,6 +41,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <tuple>
 #include <unordered_map>
@@ -124,6 +125,24 @@ class LogFilteredData : public AbstractLogData {
     // Get all marked lines
     QList<LineNumber> getMarks() const;
 
+    // Annotations interface
+
+    using AnnotationMap = std::map<LineNumber, QString>;
+
+    // Set (or replace) the annotation of the given line. An empty text
+    // removes the annotation.
+    void setAnnotation( LineNumber line, const QString& text );
+    // Annotation of the given line in the source log data, empty if none
+    QString annotationByLine( LineNumber line ) const;
+    // Annotation of the given line index in the filtered data, empty if none
+    QString annotationByIndex( LineNumber index ) const;
+    // Remove the annotation of the passed line, if any
+    void deleteAnnotation( LineNumber line );
+    // Completely clear the annotations.
+    void clearAnnotations();
+    // All annotations, keyed by line number in the source log data
+    const AnnotationMap& getAnnotations() const;
+
     // Changes what the AbstractLogData returns via its getXLines/getNbLines
     // API.
     enum class VisibilityFlags {
@@ -173,11 +192,16 @@ class LogFilteredData : public AbstractLogData {
     bool isLineMatched( LineNumber lineNumber ) const;
     // Returns wheither the passed line has a mark on it.
     bool isLineMarked( LineNumber line ) const;
+    // Returns whether the passed line has an annotation on it.
+    bool isLineAnnotated( LineNumber line ) const;
 
     // List of the matching line numbers
     SearchResultArray matching_lines_;
     SearchResultArray marks_;
     SearchResultArray marks_and_matches_;
+
+    // User comments, keyed by line number in the source log data
+    AnnotationMap annotations_;
 
     const LogData* sourceLogData_;
 

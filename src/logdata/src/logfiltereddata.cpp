@@ -207,6 +207,9 @@ LogFilteredData::LineType LogFilteredData::lineTypeByLine( LineNumber lineNumber
     if ( isLineMatched( lineNumber ) )
         line_type |= LineTypeFlags::Match;
 
+    if ( isLineAnnotated( lineNumber ) )
+        line_type |= LineTypeFlags::Annotation;
+
     return line_type;
 }
 
@@ -336,6 +339,53 @@ QList<LineNumber> LogFilteredData::getMarks() const
         static_cast<void*>( &markedLines ) );
 
     return markedLines;
+}
+
+void LogFilteredData::setAnnotation( LineNumber line, const QString& text )
+{
+    if ( line >= sourceLogData_->getNbLine() ) {
+        LOG_ERROR
+            << "LogFilteredData::setAnnotation trying to annotate a line outside of the file.";
+        return;
+    }
+
+    if ( text.isEmpty() ) {
+        annotations_.erase( line );
+    }
+    else {
+        annotations_[ line ] = text;
+    }
+}
+
+bool LogFilteredData::isLineAnnotated( LineNumber line ) const
+{
+    return annotations_.count( line ) > 0;
+}
+
+QString LogFilteredData::annotationByLine( LineNumber line ) const
+{
+    const auto annotation = annotations_.find( line );
+    return annotation != annotations_.end() ? annotation->second : QString{};
+}
+
+QString LogFilteredData::annotationByIndex( LineNumber index ) const
+{
+    return annotationByLine( findLogDataLine( index ) );
+}
+
+void LogFilteredData::deleteAnnotation( LineNumber line )
+{
+    annotations_.erase( line );
+}
+
+void LogFilteredData::clearAnnotations()
+{
+    annotations_.clear();
+}
+
+const LogFilteredData::AnnotationMap& LogFilteredData::getAnnotations() const
+{
+    return annotations_;
 }
 
 void LogFilteredData::setVisibility( Visibility visi )

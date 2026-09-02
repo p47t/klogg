@@ -88,6 +88,7 @@ class AbstractLogData : public QObject {
         Plain = 0, // 0 can be checked like a proper flag in QFlags
         Match = 1 << 0,
         Mark = 1 << 1,
+        Annotation = 1 << 2,
     };
     Q_DECLARE_FLAGS( LineType, LineTypeFlags )
 
