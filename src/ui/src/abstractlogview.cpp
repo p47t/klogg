@@ -65,6 +65,7 @@
 #include <QFontMetrics>
 #include <QGestureEvent>
 #include <QInputDialog>
+#include <QLineEdit>
 #include <QMenu>
 #include <QPaintEvent>
 #include <QPainter>
@@ -185,6 +186,45 @@ int textWidth( const QFontMetrics& fm, const QStringView& text )
         return 0;
     }
     return textWidth( fm, QString::fromRawData( text.data(), klogg::isize( text ) ) );
+}
+
+// Geometry and colour of the label a line annotation is drawn in
+constexpr int AnnotationPadding = 5;
+// Horizontal gap between the label and the right edge of the view. There is
+// deliberately no vertical one: the label has to be tall enough to hold the
+// descenders of the comment, or drawText clips them.
+constexpr int AnnotationMargin = 2;
+constexpr int AnnotationArrowWidth = 9;
+constexpr const char* AnnotationColor = "#ffd45e";
+
+// The arrow head and the padding both eat into the label, so the comment needs
+// room next to them
+constexpr int AnnotationDecorations = AnnotationArrowWidth + 2 * AnnotationPadding;
+
+// The comment as it will be drawn, elided to what availableWidth can hold, plus
+// the resulting total width of the label. An empty text means there is not
+// enough room to draw anything meaningful.
+struct AnnotationLayout {
+    QString text;
+    int width = 0;
+};
+
+// Single source of truth for how wide an annotation ends up: used both to
+// reserve room on the line and to draw the label itself.
+AnnotationLayout layoutAnnotation( const QFontMetrics& metrics, const QString& annotation,
+                                   int availableWidth )
+{
+    if ( annotation.isEmpty() || availableWidth <= AnnotationDecorations + AnnotationPadding ) {
+        return {};
+    }
+
+    auto text
+        = metrics.elidedText( annotation, Qt::ElideRight, availableWidth - AnnotationDecorations );
+    if ( text.isEmpty() ) {
+        return {};
+    }
+
+    return { text, textWidth( metrics, text ) + AnnotationDecorations };
 }
 
 std::unique_ptr<QPainter> pixmapPainter( QPaintDevice* paintDevice, const QFont& font )
@@ -551,6 +591,15 @@ void AbstractLogView::mousePressEvent( QMouseEvent* mouseEvent )
         }
         markAction_->setText( hasUnmarkedLines ? tr( "&Mark" ) : tr( "Unmark" ) );
 
+        const auto selectedLine = selection_.selectedLine();
+        const auto hasAnnotation
+            = selectedLine.has_value() && !lineAnnotation( *selectedLine ).isEmpty();
+        annotateAction_->setEnabled( selectedLine.has_value() );
+        annotateAction_->setText( hasAnnotation ? tr( "Edit &annotation..." )
+                                                : tr( "&Annotate..." ) );
+        clearAnnotationAction_->setEnabled( hasAnnotation );
+        toggleAnnotationsAction_->setChecked( annotationsVisible_ );
+
         if ( selection_.isPortion() ) {
             findNextAction_->setEnabled( true );
             findPreviousAction_->setEnabled( true );
@@ -838,6 +887,8 @@ void AbstractLogView::doRegisterShortcuts()
                       [ this ]() { findPreviousSelected(); } );
 
     registerShortcut( ShortcutAction::LogViewMark, [ this ]() { markSelected(); } );
+
+    registerShortcut( ShortcutAction::LogViewAnnotate, [ this ]() { annotateSelected(); } );
 
     registerShortcut( ShortcutAction::LogViewJumpToLineNumber, [ this ]() {
         const auto newLine = qMax( 0ull, digitsBuffer_.content() - 1ull );
@@ -1181,6 +1232,12 @@ LineNumber AbstractLogView::maxDisplayLineNumber() const
     return LineNumber( logData_->getNbLine().get() );
 }
 
+// Views that have no access to the annotations simply never show any.
+QString AbstractLogView::lineAnnotation( LineNumber ) const
+{
+    return {};
+}
+
 void AbstractLogView::setOverview( Overview* overview, OverviewWidget* overviewWidget )
 {
     overview_ = overview;
@@ -1297,6 +1354,20 @@ void AbstractLogView::textWrapSet( bool checked )
     forceRefresh();
 }
 
+void AbstractLogView::annotationsVisibilitySet( bool visible )
+{
+    if ( annotationsVisible_ == visible ) {
+        return;
+    }
+
+    annotationsVisible_ = visible;
+    if ( toggleAnnotationsAction_ ) {
+        toggleAnnotationsAction_->setChecked( visible );
+    }
+    // Annotations are drawn over the text, no geometry change needed
+    forceRefresh();
+}
+
 void AbstractLogView::refreshOverview()
 {
     assert( overviewWidget_ );
@@ -1406,6 +1477,32 @@ void AbstractLogView::markSelected()
     if ( !lines.empty() ) {
         Q_EMIT markLines( lines );
     }
+}
+
+void AbstractLogView::annotateSelected()
+{
+    const auto selectedLine = selection_.selectedLine();
+    if ( !selectedLine.has_value() ) {
+        return;
+    }
+
+    bool accepted = false;
+    const auto comment = QInputDialog::getText(
+        this, tr( "Annotate line" ),
+        tr( "Comment for line %1" ).arg( displayLineNumber( *selectedLine ).get() ),
+        QLineEdit::Normal, lineAnnotation( *selectedLine ), &accepted );
+
+    if ( !accepted ) {
+        return;
+    }
+
+    // An empty comment removes the annotation. Show the annotations again if
+    // they were hidden, otherwise the edit would seem to have done nothing.
+    if ( !comment.isEmpty() && !annotationsVisible_ ) {
+        Q_EMIT toggleAnnotations();
+    }
+
+    Q_EMIT annotateLine( *selectedLine, comment.simplified() );
 }
 
 void AbstractLogView::saveToFile()
@@ -2015,6 +2112,25 @@ void AbstractLogView::createMenu()
     markAction_ = new QAction( tr( "&Mark" ), this );
     connect( markAction_, &QAction::triggered, this, [ this ]( auto ) { this->markSelected(); } );
 
+    annotateAction_ = new QAction( tr( "&Annotate..." ), this );
+    annotateAction_->setStatusTip( tr( "Attach a comment to the selected line" ) );
+    connect( annotateAction_, &QAction::triggered, this,
+             [ this ]( auto ) { this->annotateSelected(); } );
+
+    clearAnnotationAction_ = new QAction( tr( "Remove annotation" ), this );
+    connect( clearAnnotationAction_, &QAction::triggered, this, [ this ]( auto ) {
+        const auto selectedLine = selection_.selectedLine();
+        if ( selectedLine.has_value() ) {
+            Q_EMIT annotateLine( *selectedLine, QString{} );
+        }
+    } );
+
+    toggleAnnotationsAction_ = new QAction( tr( "Show annotations" ), this );
+    toggleAnnotationsAction_->setCheckable( true );
+    toggleAnnotationsAction_->setChecked( annotationsVisible_ );
+    connect( toggleAnnotationsAction_, &QAction::triggered, this,
+             [ this ]( auto ) { Q_EMIT toggleAnnotations(); } );
+
     saveToFileAction_ = new QAction( tr( "Save to file" ), this );
     connect( saveToFileAction_, &QAction::triggered, this,
              [ this ]( auto ) { this->saveToFile(); } );
@@ -2092,6 +2208,9 @@ void AbstractLogView::createMenu()
 
     popupMenu_->addSeparator();
     popupMenu_->addAction( markAction_ );
+    popupMenu_->addAction( annotateAction_ );
+    popupMenu_->addAction( clearAnnotationAction_ );
+    popupMenu_->addAction( toggleAnnotationsAction_ );
     popupMenu_->addSeparator();
     popupMenu_->addAction( copyAction_ );
     popupMenu_->addAction( copyWithLineNumbersAction_ );
@@ -2229,6 +2348,7 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
     static const QBrush matchBulletBrush = QBrush( Qt::red );
     static const QBrush markBrush = QBrush( "dodgerblue" );
     static const QBrush markedMatchBrush = QBrush( "violet" );
+    static const QBrush annotationBulletBrush = QBrush( "goldenrod" );
 
     static constexpr int SeparatorWidth = 1;
     static constexpr int BulletAreaWidth = 11;
@@ -2349,6 +2469,12 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
                         } );
     }
 
+    // Metrics of the annotation font, needed per line both to reserve room on
+    // the line and to draw the label
+    const QFontMetrics annotationMetrics{ annotationFont() };
+    const auto annotationAvailableWidth
+        = viewport()->width() - contentStartPosX - 2 * AnnotationMargin;
+
     // Position in pixel of the base line of the line to print
     int yPos = 0;
     wrappedLinesInfo_.clear();
@@ -2456,9 +2582,29 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
                                                       palette.color( QPalette::Highlight ) } );
         }
 
+        // Lay the annotation out before wrapping: in wrap mode the first line
+        // is wrapped early to leave room for the label, so that the label can
+        // stay on the first line without covering any text.
+        const auto annotationLayout
+            = annotationsVisible_
+                  ? layoutAnnotation( annotationMetrics, lineAnnotation( lineNumber ),
+                                      annotationAvailableWidth )
+                  : AnnotationLayout{};
+
         const auto wrappedLineLength
             = useTextWrap_ ? nbVisibleCols : LineLength{ klogg::isize( expandedLine ) + 1 };
-        const WrappedString wrappedLineView{ expandedLine, wrappedLineLength };
+
+        auto firstLineLength = LineLength{};
+        if ( useTextWrap_ && annotationLayout.width > 0 ) {
+            // Never give up more than half the line to the annotation, so that
+            // a long comment cannot squeeze the log text down to nothing
+            const auto reserved
+                = LineLength{ std::min( annotationLayout.width / charWidth_ + 2,
+                                        static_cast<int>( nbVisibleCols.get() / 2 ) ) };
+            firstLineLength = nbVisibleCols - reserved;
+        }
+
+        const WrappedString wrappedLineView{ expandedLine, wrappedLineLength, firstLineLength };
         const auto finalLineHeight
             = fontHeight * static_cast<int>( wrappedLineView.wrappedLinesCount() );
         // LOG_INFO << "Draw line " << lineNumber << ": " << expandedLine;
@@ -2525,6 +2671,12 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
         lineDrawer.draw( painter.get(), xPos, yPos, viewport()->width(), wrappedLineView,
                          ContentMarginWidth );
 
+        // The annotation is drawn over the first row of the line it belongs to,
+        // right aligned. In wrap mode the text was wrapped early above, so the
+        // label lands in the gap that was left for it.
+        drawAnnotation( painter.get(), annotationLayout.text, annotationLayout.width, yPos,
+                        viewport()->width(), backColor );
+
         if ( ( selection_.isLineSelected( lineNumber ) && selection_.isSingleLine() )
              || selection_.getPortionForLine( lineNumber ).isValid() ) {
             auto selectionPen = QPen( palette.color( QPalette::HighlightedText ) );
@@ -2563,7 +2715,11 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
             painter->setRenderHint( QPainter::Antialiasing );
 
             QBrush brush = normalBulletBrush;
-            if ( currentLineType.testFlag( LineTypeFlags::Match ) )
+            // An annotation takes precedence over a match here: matches stay
+            // visible through highlighting, while annotations can be hidden.
+            if ( currentLineType.testFlag( LineTypeFlags::Annotation ) )
+                brush = annotationBulletBrush;
+            else if ( currentLineType.testFlag( LineTypeFlags::Match ) )
                 brush = matchBulletBrush;
             painter->setBrush( brush );
             painter->drawEllipse( middleXLine - circleSize, middleYLine - circleSize,
@@ -2588,6 +2744,56 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
             break;
         }
     } // For each line
+}
+
+QFont AbstractLogView::annotationFont() const
+{
+    auto font = this->font();
+    font.setItalic( true );
+    return font;
+}
+
+// Draw a laid out annotation as a right aligned label on the row starting at
+// yPos. The left edge is a triangle so the label reads as an arrow pointing back
+// at the line it comments on. The label is opaque so that the comment stays
+// readable over any log text it covers.
+void AbstractLogView::drawAnnotation( QPainter* painter, const QString& text, int labelWidth,
+                                      int yPos, int rightEdgePx, const QColor& lineBackColor )
+{
+    if ( text.isEmpty() ) {
+        return;
+    }
+
+    painter->save();
+    painter->setFont( annotationFont() );
+
+    // Full text height, so ascenders and descenders both fit. The italic font
+    // can be marginally taller than the line, so centre it on the row.
+    const auto boxHeight = std::max( painter->fontMetrics().height(), 1 );
+    const QRect box{ rightEdgePx - labelWidth - AnnotationMargin,
+                     yPos + ( charHeight_ - boxHeight ) / 2, labelWidth, boxHeight };
+
+    // Rectangle with the left side pulled into a point, drawn clockwise from
+    // the tip of the arrow head
+    const QPoint shape[ 5 ] = {
+        QPoint( box.left(), box.top() + box.height() / 2 ),
+        QPoint( box.left() + AnnotationArrowWidth, box.top() ),
+        QPoint( box.right(), box.top() ),
+        QPoint( box.right(), box.bottom() ),
+        QPoint( box.left() + AnnotationArrowWidth, box.bottom() ),
+    };
+
+    const auto backColor = blendColor( lineBackColor, QColor{ AnnotationColor } );
+    painter->setPen( QPen{ backColor.darker( 140 ) } );
+    painter->setBrush( QBrush{ backColor } );
+    painter->drawPolygon( shape, 5 );
+
+    painter->setPen( backColor.lightnessF() > 0.5f ? Qt::black : Qt::white );
+    painter->drawText(
+        box.adjusted( AnnotationArrowWidth + AnnotationPadding, 0, -AnnotationPadding, 0 ),
+        Qt::AlignVCenter | Qt::AlignRight, text );
+
+    painter->restore();
 }
 
 // Draw the "pull to follow" bar and return a pixmap.

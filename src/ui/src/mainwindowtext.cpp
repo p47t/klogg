@@ -66,6 +66,7 @@ const char* action::lineNumbersVisibleInFilteredText
     = QT_TR_NOOP( "Line &numbers in filtered view" );
 const char* action::followText = QT_TR_NOOP( "&Follow File" );
 const char* action::wrapText = QT_TR_NOOP( "&Wrap text" );
+const char* action::annotationsVisibleText = QT_TR_NOOP( "Show &annotations" );
 const char* action::reloadText = QT_TR_NOOP( "&Reload" );
 const char* action::stopText = QT_TR_NOOP( "&Stop" );
 const char* action::optionsText = QT_TR_NOOP( "&Preferences..." );

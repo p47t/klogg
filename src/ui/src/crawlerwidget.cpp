@@ -90,7 +90,8 @@ public:
     // Construct from the value passsed
     CrawlerWidgetContext( QList<int> sizes, bool ignoreCase, bool autoRefresh, bool followFile,
                           bool useRegexp, bool inverseRegexp, bool useBooleanCombination,
-                          QList<LineNumber> markedLines )
+                          QList<LineNumber> markedLines, LogFilteredData::AnnotationMap annotations,
+                          bool annotationsVisible )
         : sizes_( sizes )
         , ignoreCase_( ignoreCase )
         , autoRefresh_( autoRefresh )
@@ -98,6 +99,8 @@ public:
         , useRegexp_( useRegexp )
         , inverseRegexp_( inverseRegexp )
         , useBooleanCombination_( useBooleanCombination )
+        , annotations_( std::move( annotations ) )
+        , annotationsVisible_( annotationsVisible )
     {
         std::transform( markedLines.cbegin(), markedLines.cend(), std::back_inserter( marks_ ),
                         []( const auto& m ) { return m.get(); } );
@@ -142,6 +145,16 @@ public:
         return marks_;
     }
 
+    const LogFilteredData::AnnotationMap& annotations() const
+    {
+        return annotations_;
+    }
+
+    bool annotationsVisible() const
+    {
+        return annotationsVisible_;
+    }
+
 private:
     void loadFromString( const QString& string );
     void loadFromJson( const QString& json );
@@ -157,6 +170,9 @@ private:
     bool useBooleanCombination_;
 
     QList<LineNumber::UnderlyingType> marks_;
+
+    LogFilteredData::AnnotationMap annotations_;
+    bool annotationsVisible_ = true;
 };
 
 // Constructor only does trivial construction. The real work is done once
@@ -237,6 +253,8 @@ std::vector<QObject*> CrawlerWidget::doGetAllSearchables() const
 void CrawlerWidget::doSendAllStateSignals()
 {
     Q_EMIT newSelection( currentLineNumber_, 0_lcount, 0_lcol, 0_length );
+    // Annotation visibility is per tab, keep the View menu in sync with it
+    Q_EMIT annotationsVisibilityChanged( annotationsVisible_ );
     if ( !loadingInProgress_ )
         Q_EMIT loadingFinished( LoadingStatus::Successful );
 }
@@ -356,6 +374,12 @@ void CrawlerWidget::doSetViewContext( const QString& view_context )
     const auto savedMarks = context.marks();
     std::transform( savedMarks.cbegin(), savedMarks.cend(), std::back_inserter( savedMarkedLines_ ),
                     []( const auto& l ) { return LineNumber( l ); } );
+
+    savedAnnotations_ = context.annotations();
+
+    annotationsVisible_ = context.annotationsVisible();
+    logMainView_->annotationsVisibilitySet( annotationsVisible_ );
+    filteredView_->annotationsVisibilitySet( annotationsVisible_ );
 }
 
 std::shared_ptr<const ViewContextInterface> CrawlerWidget::doGetViewContext() const
@@ -363,7 +387,8 @@ std::shared_ptr<const ViewContextInterface> CrawlerWidget::doGetViewContext() co
     auto context = std::make_shared<const CrawlerWidgetContext>(
         sizes(), ( !matchCaseButton_->isChecked() ), searchRefreshButton_->isChecked(),
         logMainView_->isFollowEnabled(), useRegexpButton_->isChecked(), inverseButton_->isChecked(),
-        booleanButton_->isChecked(), logFilteredData_->getMarks() );
+        booleanButton_->isChecked(), logFilteredData_->getMarks(),
+        logFilteredData_->getAnnotations(), annotationsVisible_ );
 
     return static_cast<std::shared_ptr<const ViewContextInterface>>( context );
 }
@@ -378,7 +403,16 @@ void CrawlerWidget::startNewSearch()
         keepSearchResultsButton_->setChecked( false );
 
         logFilteredData_->interruptSearch();
+
+        // Annotations are user authored, carry them over to the new search
+        // results rather than dropping them with the previous filtered data.
+        const auto previousAnnotations = logFilteredData_->getAnnotations();
+
         logFilteredData_ = logData_->getNewFilteredData();
+
+        for ( const auto& annotation : previousAnnotations ) {
+            logFilteredData_->setAnnotation( annotation.first, annotation.second );
+        }
 
         filteredView_ = new FilteredView( logFilteredData_.get(), quickFindPattern_.get() );
         filteredViewsData_[ filteredView_ ] = logFilteredData_;
@@ -597,6 +631,48 @@ void CrawlerWidget::markLinesFromMain( const klogg::vector<LineNumber>& lines )
     update();
 }
 
+void CrawlerWidget::annotateLineFromMain( LineNumber line, const QString& text )
+{
+    if ( line >= logData_->getNbLine() ) {
+        return;
+    }
+
+    logFilteredData_->setAnnotation( line, text );
+
+    // Both views draw the annotation, and the bullet colour depends on it
+    filteredView_->forceRefresh();
+    logMainView_->forceRefresh();
+    update();
+}
+
+void CrawlerWidget::annotateLineFromFiltered( LineNumber line, const QString& text )
+{
+    if ( line >= logData_->getNbLine() ) {
+        return;
+    }
+
+    annotateLineFromMain( logFilteredData_->getMatchingLineNumber( line ), text );
+}
+
+void CrawlerWidget::setAnnotationsVisible( bool visible )
+{
+    if ( annotationsVisible_ == visible ) {
+        return;
+    }
+
+    annotationsVisible_ = visible;
+
+    logMainView_->annotationsVisibilitySet( annotationsVisible_ );
+    filteredView_->annotationsVisibilitySet( annotationsVisible_ );
+
+    Q_EMIT annotationsVisibilityChanged( annotationsVisible_ );
+}
+
+void CrawlerWidget::toggleAnnotationsVisibility()
+{
+    setAnnotationsVisible( !annotationsVisible_ );
+}
+
 void CrawlerWidget::markLinesFromFiltered( const klogg::vector<LineNumber>& lines )
 {
     klogg::vector<LineNumber> linesInMain( lines.size() );
@@ -728,6 +804,12 @@ void CrawlerWidget::loadingFinishedHandler( LoadingStatus status )
         for ( const auto& m : savedMarkedLines_ ) {
             logFilteredData_->addMark( m );
         }
+        for ( const auto& annotation : savedAnnotations_ ) {
+            logFilteredData_->setAnnotation( annotation.first, annotation.second );
+        }
+        // Applied once: annotations live in the filtered data from now on, and
+        // reapplying them on a later reload would resurrect deleted ones.
+        savedAnnotations_.clear();
         logMainView_->setFocus();
     }
 
@@ -741,6 +823,9 @@ void CrawlerWidget::fileChangedHandler( MonitoredFileStatus status )
     if ( status == MonitoredFileStatus::Truncated ) {
         // Clear all marks (TODO offer the option to keep them)
         logFilteredData_->clearMarks();
+        // The file content is gone, so the annotated line numbers no longer
+        // refer to anything the user annotated.
+        logFilteredData_->clearAnnotations();
         if ( !searchInfoLine_->text().isEmpty() ) {
             // Invalidate the search
             constexpr auto DropCache = true;
@@ -1211,6 +1296,11 @@ void CrawlerWidget::setup()
 
     connect( logMainView_, &LogMainView::markLines, this, &CrawlerWidget::markLinesFromMain );
 
+    connect( logMainView_, &LogMainView::annotateLine, this, &CrawlerWidget::annotateLineFromMain );
+
+    connect( logMainView_, &LogMainView::toggleAnnotations, this,
+             &CrawlerWidget::toggleAnnotationsVisibility );
+
     connect( logMainView_, &LogMainView::highlightersChange, this,
              &CrawlerWidget::applyConfiguration );
 
@@ -1364,11 +1454,18 @@ void CrawlerWidget::changeFontSize( bool increase )
 
 void CrawlerWidget::connectAllFilteredViewSlots( FilteredView* view )
 {
+    view->annotationsVisibilitySet( annotationsVisible_ );
+
     connect( view, &FilteredView::newSelection, view, [ view ]( auto ) { view->update(); } );
 
     connect( view, &FilteredView::newSelection, this, &CrawlerWidget::jumpToMatchingLine );
 
     connect( view, &FilteredView::markLines, this, &CrawlerWidget::markLinesFromFiltered );
+
+    connect( view, &FilteredView::annotateLine, this, &CrawlerWidget::annotateLineFromFiltered );
+
+    connect( view, &FilteredView::toggleAnnotations, this,
+             &CrawlerWidget::toggleAnnotationsVisibility );
 
     connect( view, &FilteredView::highlightersChange, this, &CrawlerWidget::applyConfiguration );
 
@@ -1908,6 +2005,19 @@ void CrawlerWidgetContext::loadFromJson( const QString& json )
             marks_.append( m.toUInt() );
         }
     }
+
+    if ( properties.contains( "A" ) ) {
+        const auto annotations = properties.value( "A" ).toList();
+        for ( const auto& annotation : annotations ) {
+            const auto fields = annotation.toMap();
+            const auto text = fields.value( "t" ).toString();
+            if ( !text.isEmpty() ) {
+                annotations_[ LineNumber( fields.value( "l" ).toULongLong() ) ] = text;
+            }
+        }
+    }
+
+    annotationsVisible_ = properties.contains( "AV" ) ? properties.value( "AV" ).toBool() : true;
 }
 
 QString CrawlerWidgetContext::toString() const
@@ -1930,6 +2040,16 @@ QString CrawlerWidgetContext::toString() const
     properies[ "IR" ] = inverseRegexp_;
     properies[ "BC" ] = useBooleanCombination_;
     properies[ "M" ] = toVariantList( marks_ );
+
+    QVariantList annotations;
+    for ( const auto& annotation : annotations_ ) {
+        annotations.append( QVariantMap{
+            { "l", static_cast<qulonglong>( annotation.first.get() ) },
+            { "t", annotation.second },
+        } );
+    }
+    properies[ "A" ] = annotations;
+    properies[ "AV" ] = annotationsVisible_;
 
     return QJsonDocument::fromVariant( properies ).toJson( QJsonDocument::Compact );
 }

@@ -76,6 +76,12 @@ AbstractLogData::LineType FilteredView::lineType( LineNumber lineNumber ) const
     return logFilteredData_->lineTypeByIndex( lineNumber );
 }
 
+QString FilteredView::lineAnnotation( LineNumber lineNumber ) const
+{
+    // line in filteredview corresponds to index
+    return logFilteredData_->annotationByIndex( lineNumber );
+}
+
 LineNumber FilteredView::displayLineNumber( LineNumber lineNumber ) const
 {
     // Display a 1-based index

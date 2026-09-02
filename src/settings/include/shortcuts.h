@@ -67,6 +67,7 @@ struct ShortcutAction {
     static constexpr auto MainWindowClearFile = "mainwindow.clear_file";
     static constexpr auto MainWindowFollowFile = "mainwindow.follow_file";
     static constexpr auto MainWindowTextWrap = "mainwindow.text_wrap";
+    static constexpr auto MainWindowToggleAnnotations = "mainwindow.toggle_annotations";
     static constexpr auto MainWindowReload = "mainwindow.reload";
     static constexpr auto MainWindowStop = "mainwindow.stop";
     static constexpr auto MainWindowScratchpad = "mainwindow.scratchpad";
@@ -80,6 +81,7 @@ struct ShortcutAction {
     static constexpr auto LogViewMark = "logview.mark";
     static constexpr auto LogViewNextMark = "logview.next_mark";
     static constexpr auto LogViewPrevMark = "logview.prev_mark";
+    static constexpr auto LogViewAnnotate = "logview.annotate";
     static constexpr auto LogViewSelectionUp = "logview.selection_up";
     static constexpr auto LogViewSelectionDown = "logview.selection_down";
     static constexpr auto LogViewScrollUp = "logview.scroll_up";

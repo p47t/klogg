@@ -148,6 +148,36 @@ struct CrawlerWidget::access_by<CrawlerWidgetPrivate> {
     {
         crawler->grab();
     }
+
+    QImage grabMainView()
+    {
+        return crawler->logMainView_->grab().toImage();
+    }
+
+    void annotate( LineNumber line, const QString& text )
+    {
+        crawler->annotateLineFromMain( line, text );
+    }
+
+    void toggleAnnotations()
+    {
+        crawler->toggleAnnotationsVisibility();
+    }
+
+    bool annotationsVisible() const
+    {
+        return crawler->annotationsVisible_;
+    }
+
+    QString annotationOfLine( LineNumber line )
+    {
+        return crawler->logFilteredData_->annotationByLine( line );
+    }
+
+    void setTextWrap( bool wrap )
+    {
+        crawler->logMainView_->textWrapSet( wrap );
+    }
 };
 
 using CrawlerWidgetVisitor = CrawlerWidget::access_by<CrawlerWidgetPrivate>;
@@ -250,6 +280,89 @@ SCENARIO( "Crawler widget search", "[ui]" )
             THEN( "all lines matched" )
             {
                 REQUIRE( crawlerVisitor.getLogFilteredNbLines().get() == SL_NB_LINES );
+            }
+        }
+
+        WHEN( "annotating a line" )
+        {
+            crawlerVisitor.crawler->resize( 900, 600 );
+
+            const auto withoutAnnotation = crawlerVisitor.grabMainView();
+
+            crawlerVisitor.annotate( 3_lnum, "needs investigation" );
+            const auto withAnnotation = crawlerVisitor.grabMainView();
+
+            THEN( "the comment is stored for that line" )
+            {
+                REQUIRE( crawlerVisitor.annotationOfLine( 3_lnum ) == "needs investigation" );
+            }
+
+            THEN( "the main view draws something it did not draw before" )
+            {
+                REQUIRE( withAnnotation != withoutAnnotation );
+            }
+
+            AND_WHEN( "annotations are hidden" )
+            {
+                crawlerVisitor.toggleAnnotations();
+
+                THEN( "the label is gone but the line stays marked as annotated" )
+                {
+                    REQUIRE_FALSE( crawlerVisitor.annotationsVisible() );
+
+                    const auto hidden = crawlerVisitor.grabMainView();
+                    // The label is no longer drawn over the line...
+                    REQUIRE( hidden != withAnnotation );
+                    // ...but the bullet keeps the line discoverable, so the
+                    // view does not go back to looking un-annotated.
+                    REQUIRE( hidden != withoutAnnotation );
+                }
+
+                AND_WHEN( "annotations are shown again" )
+                {
+                    crawlerVisitor.toggleAnnotations();
+
+                    THEN( "the annotation is drawn again" )
+                    {
+                        REQUIRE( crawlerVisitor.annotationsVisible() );
+                        REQUIRE( crawlerVisitor.grabMainView() == withAnnotation );
+                    }
+                }
+            }
+
+            AND_WHEN( "text wrap splits the line over several rows" )
+            {
+                crawlerVisitor.annotate( 3_lnum, QString{} );
+                crawlerVisitor.setTextWrap( true );
+                const auto wrappedWithout = crawlerVisitor.grabMainView();
+
+                crawlerVisitor.annotate( 3_lnum, "needs investigation" );
+                const auto wrappedWith = crawlerVisitor.grabMainView();
+
+                THEN( "the annotation is still drawn" )
+                {
+                    REQUIRE( wrappedWith != wrappedWithout );
+                }
+
+                THEN( "the line is laid out differently than without it" )
+                {
+                    // The first row is wrapped early to leave room for the
+                    // label, so the wrapped text itself changes too
+                    REQUIRE( wrappedWith != withAnnotation );
+                }
+
+                crawlerVisitor.setTextWrap( false );
+            }
+
+            AND_WHEN( "the comment is cleared" )
+            {
+                crawlerVisitor.annotate( 3_lnum, QString{} );
+
+                THEN( "the annotation is gone from the data and the view" )
+                {
+                    REQUIRE( crawlerVisitor.annotationOfLine( 3_lnum ).isEmpty() );
+                    REQUIRE( crawlerVisitor.grabMainView() == withoutAnnotation );
+                }
             }
         }
 

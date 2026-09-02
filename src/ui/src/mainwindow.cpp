@@ -156,6 +156,8 @@ MainWindow::MainWindow( WindowSession session )
     // Send actions to the crawlerwidget
     signalMux_.connect( this, SIGNAL( followSet( bool ) ), SIGNAL( followSet( bool ) ) );
     signalMux_.connect( this, SIGNAL( textWrapSet( bool ) ), SIGNAL( textWrapSet( bool ) ) );
+    signalMux_.connect( this, SIGNAL( annotationsVisibleSet( bool ) ),
+                        SLOT( setAnnotationsVisible( bool ) ) );
     signalMux_.connect( this, SIGNAL( optionsChanged() ), SLOT( applyConfiguration() ) );
     signalMux_.connect( this, SIGNAL( enteringQuickFind() ), SLOT( enteringQuickFind() ) );
     signalMux_.connect( &quickFindWidget_, SIGNAL( close() ), SLOT( exitingQuickFind() ) );
@@ -163,6 +165,8 @@ MainWindow::MainWindow( WindowSession session )
     // Actions from the CrawlerWidget
     signalMux_.connect( SIGNAL( followModeChanged( bool ) ), this,
                         SLOT( changeFollowMode( bool ) ) );
+    signalMux_.connect( SIGNAL( annotationsVisibilityChanged( bool ) ), this,
+                        SLOT( changeAnnotationsVisibility( bool ) ) );
     signalMux_.connect(
         SIGNAL( newSelection( LineNumber, LinesCount, LineColumn, LineLength ) ), this,
         SLOT( lineNumberHandler( LineNumber, LinesCount, LineColumn, LineLength ) ) );
@@ -367,6 +371,7 @@ void MainWindow::reTranslateUI()
 
     followAction->setText( transAction( action::followText ) );
     textWrapAction->setText( transAction( action::wrapText ) );
+    annotationsVisibleAction->setText( transAction( action::annotationsVisibleText ) );
     reloadAction->setText( transAction( action::reloadText ) );
     stopAction->setText( transAction( action::stopText ) );
 
@@ -573,6 +578,12 @@ void MainWindow::createActions()
     textWrapAction->setEnabled( true );
     connect( textWrapAction, &QAction::toggled, this, &MainWindow::textWrapSet );
 
+    annotationsVisibleAction = new QAction( tr( action::annotationsVisibleText ), this );
+    annotationsVisibleAction->setCheckable( true );
+    annotationsVisibleAction->setChecked( true );
+    connect( annotationsVisibleAction, &QAction::toggled, this,
+             &MainWindow::annotationsVisibleSet );
+
     reloadAction = new QAction( tr( action::reloadText ), this );
     signalMux_.connect( reloadAction, SIGNAL( triggered() ), SLOT( reload() ) );
 
@@ -719,6 +730,7 @@ void MainWindow::updateShortcuts()
     setShortcuts( openUrlAction, ShortcutAction::MainWindowOpenFromUrl );
     setShortcuts( followAction, ShortcutAction::MainWindowFollowFile );
     setShortcuts( textWrapAction, ShortcutAction::MainWindowTextWrap );
+    setShortcuts( annotationsVisibleAction, ShortcutAction::MainWindowToggleAnnotations );
     setShortcuts( reloadAction, ShortcutAction::MainWindowReload );
     setShortcuts( stopAction, ShortcutAction::MainWindowStop );
     setShortcuts( showScratchPadAction, ShortcutAction::MainWindowScratchpad );
@@ -791,6 +803,7 @@ void MainWindow::createMenus()
     viewMenu->addAction( lineNumbersVisibleInFilteredAction );
     viewMenu->addSeparator();
     viewMenu->addAction( textWrapAction );
+    viewMenu->addAction( annotationsVisibleAction );
     viewMenu->addSeparator();
     viewMenu->addAction( followAction );
     viewMenu->addSeparator();
@@ -1323,6 +1336,11 @@ void MainWindow::changeFollowMode( bool follow )
     }
 
     followAction->setChecked( follow );
+}
+
+void MainWindow::changeAnnotationsVisibility( bool visible )
+{
+    annotationsVisibleAction->setChecked( visible );
 }
 
 void MainWindow::lineNumberHandler( LineNumber startLine, LinesCount nLines, LineColumn startCol,

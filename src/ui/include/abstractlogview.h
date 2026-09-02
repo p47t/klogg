@@ -52,6 +52,7 @@
 #include <QBasicTimer>
 #include <QColor>
 #include <QEvent>
+#include <QFont>
 #include <QFontMetrics>
 
 #ifdef GLOGG_PERF_MEASURE_FPS
@@ -70,6 +71,7 @@
 
 class QMenu;
 class QAction;
+class QPainter;
 class QShortcut;
 class HighlightersMenu;
 
@@ -149,6 +151,11 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
         return useTextWrap_;
     }
 
+    bool areAnnotationsVisible() const
+    {
+        return annotationsVisible_;
+    }
+
     void allowFollowMode( bool allow );
 
     void setSearchPattern( const RegularExpressionPattern& pattern );
@@ -175,6 +182,10 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     // Must be implemented to return what LineType the line number is
     // (used for coloured bullets)
     virtual AbstractLogData::LineType lineType( LineNumber lineNumber ) const = 0;
+
+    // The user comment attached to the line, empty if the line has none.
+    // The line number is in this view's own coordinates.
+    virtual QString lineAnnotation( LineNumber lineNumber ) const;
 
     // Line number to display for line at the given index
     virtual LineNumber displayLineNumber( LineNumber lineNumber ) const;
@@ -211,6 +222,11 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     // Sent when the view ask for a line to be marked
     // (click in the left margin).
     void markLines( const klogg::vector<LineNumber>& lines );
+    // Sent when the user wants to attach a comment to a line.
+    // An empty text removes the annotation.
+    void annotateLine( LineNumber line, const QString& text );
+    // Sent when the user wants to show/hide annotations in all views.
+    void toggleAnnotations();
     // Sent up when the user wants to add the selection to the search
     void addToSearch( const QString& selection );
     // Sent up when the user wants to replace the search with the selection
@@ -270,6 +286,9 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     // Signals the text wrap mode has been enabled.
     void textWrapSet( bool checked );
 
+    // Signals whether annotations should be drawn over the annotated lines.
+    void annotationsVisibilitySet( bool visible );
+
     // Signal the on/off status of the overview has been changed.
     void refreshOverview();
 
@@ -296,6 +315,7 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     void copy();
     void copyWithLineNumbers();
     void markSelected();
+    void annotateSelected();
     void saveToFile();
     void saveSelectedToFile();
     void setSearchStart();
@@ -328,6 +348,9 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
 
     // Whether to show line numbers or not
     bool lineNumbersVisible_ = false;
+
+    // Whether to draw annotations over the annotated lines
+    bool annotationsVisible_ = true;
 
     // Pointer to the CrawlerWidget's data set
     const AbstractLogData* logData_;
@@ -390,6 +413,9 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     QAction* copyAction_;
     QAction* copyWithLineNumbersAction_;
     QAction* markAction_;
+    QAction* annotateAction_;
+    QAction* clearAnnotationAction_;
+    QAction* toggleAnnotationsAction_;
     QAction* sendToScratchpadAction_;
     QAction* replaceInScratchpadAction_;
     QAction* saveToFileAction_;
@@ -481,6 +507,14 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
 
     void drawTextArea( QPaintDevice* paintDevice );
     QPixmap drawPullToFollowBar( int width, qreal pixelRatio );
+
+    // Font line annotations are drawn in
+    QFont annotationFont() const;
+
+    // Draw an annotation label, already laid out by layoutAnnotation, right
+    // aligned over the row that starts at yPos.
+    void drawAnnotation( QPainter* painter, const QString& text, int labelWidth, int yPos,
+                         int rightEdgePx, const QColor& lineBackColor );
 
     void disableFollow();
 

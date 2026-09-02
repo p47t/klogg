@@ -79,6 +79,15 @@ AbstractLogData::LineType LogMainView::lineType( LineNumber lineNumber ) const
     return AbstractLogData::LineTypeFlags::Plain;
 }
 
+// In the main view the line number is already the one of the source log data
+QString LogMainView::lineAnnotation( LineNumber lineNumber ) const
+{
+    if ( filteredData_ ) {
+        return filteredData_->annotationByLine( lineNumber );
+    }
+    return {};
+}
+
 void LogMainView::doRegisterShortcuts()
 {
     LOG_INFO << "Registering shortcuts for main view";

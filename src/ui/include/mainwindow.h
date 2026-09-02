@@ -144,6 +144,9 @@ class MainWindow : public QMainWindow {
     // Change the follow mode checkbox and send the followSet signal down
     void changeFollowMode( bool follow );
 
+    // Update the annotations checkbox to match the current view
+    void changeAnnotationsVisibility( bool visible );
+
     // Update the selection information displayed in the status bar.
     // Must be passed as the internal (starts at 0) line number.
     void lineNumberHandler( LineNumber startLine, LinesCount nLines, LineColumn startCol,
@@ -179,6 +182,8 @@ class MainWindow : public QMainWindow {
     void followSet( bool checked );
     // Is emitted when the 'text wrap' option is enabled/disabled
     void textWrapSet( bool checked );
+    // Is emitted when the annotations are shown/hidden
+    void annotationsVisibleSet( bool visible );
     // Is emitted before the QuickFind box is activated,
     // to allow crawlers to get search in the right view.
     void enteringQuickFind();
@@ -265,6 +270,7 @@ class MainWindow : public QMainWindow {
     QAction* lineNumbersVisibleInFilteredAction;
     QAction* followAction;
     QAction* textWrapAction;
+    QAction* annotationsVisibleAction;
     QAction* reloadAction;
     QAction* stopAction;
     QAction* editHighlightersAction;

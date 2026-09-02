@@ -64,6 +64,7 @@ extern const char* lineNumbersVisibleInFilteredText;
 extern const char* followText;
 extern const char* reloadText;
 extern const char* wrapText;
+extern const char* annotationsVisibleText;
 extern const char* stopText;
 extern const char* optionsText;
 extern const char* optionsStatusTip;

@@ -260,6 +260,13 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
             },
         },
         {
+            MainWindowToggleAnnotations,
+            {
+                QApplication::tr( "Show/hide annotations" ),
+                QStringList{ "Ctrl+Shift+M" },
+            },
+        },
+        {
             MainWindowReload,
             {
                 QApplication::tr( "Reload file" ),
@@ -402,6 +409,13 @@ const ShortcutAction::ShortcutList& ShortcutAction::defaultShortcutList()
             {
                 QApplication::tr( "Jump to previous mark" ),
                 QStringList{ QKeySequence( Qt::Key_BracketLeft ).toString() },
+            },
+        },
+        {
+            LogViewAnnotate,
+            {
+                QApplication::tr( "Annotate line" ),
+                QStringList{ "Shift+M" },
             },
         },
         {

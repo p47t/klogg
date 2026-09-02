@@ -124,6 +124,9 @@ class CrawlerWidget : public QSplitter,
     void focusSearchEdit();
     void goToLine();
 
+    // Show/hide the annotations in both views
+    void setAnnotationsVisible( bool visible );
+
     // Instructs the widget to reconfigure itself because Config() has changed.
     void applyConfiguration();
 
@@ -163,6 +166,8 @@ class CrawlerWidget : public QSplitter,
     void textWrapSet( bool checked );
     // Sent up to the MainWindow to enable/disable the follow mode
     void followModeChanged( bool follow );
+    // Sent up to the MainWindow when the annotations have been shown/hidden
+    void annotationsVisibilityChanged( bool visible );
     // Sent up when the current line number is updated
     void newSelection( LineNumber startLine, LinesCount nLines, LineColumn startCol,
                        LineLength nSymbols );
@@ -207,6 +212,12 @@ class CrawlerWidget : public QSplitter,
     void markLinesFromMain( const klogg::vector<LineNumber>& lines );
     // Mark a line that has been clicked on the filtered (bottom) view.
     void markLinesFromFiltered( const klogg::vector<LineNumber>& lines );
+    // Annotate a line of the main (top) view.
+    void annotateLineFromMain( LineNumber line, const QString& text );
+    // Annotate a line of the filtered (bottom) view.
+    void annotateLineFromFiltered( LineNumber line, const QString& text );
+    // Show/hide the annotations in both views.
+    void toggleAnnotationsVisibility();
 
     void loadingFinishedHandler( LoadingStatus status );
     // Manages the info lines to inform the user the file has changed.
@@ -425,6 +436,10 @@ class CrawlerWidget : public QSplitter,
     bool firstLoadDone_ = false;
 
     klogg::vector<LineNumber> savedMarkedLines_;
+    LogFilteredData::AnnotationMap savedAnnotations_;
+
+    // Whether annotations are drawn over the annotated lines in both views
+    bool annotationsVisible_ = true;
 
     // Current encoding setting;
     std::optional<int> encodingMib_;
