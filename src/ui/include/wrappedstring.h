@@ -36,7 +36,11 @@ public:
         return QStringView( lineText ).mid( firstCol.get(), length.get() );
     }
 
-    explicit WrappedString( QString longLine, LineLength visibleColumns )
+    // firstLineColumns, when positive, wraps the first line at a different
+    // width than the rest. It is used to keep room on the first line for
+    // something drawn over it, such as a line annotation.
+    explicit WrappedString( QString longLine, LineLength visibleColumns,
+                            LineLength firstLineColumns = LineLength{} )
     {
         unwrappedLine_ = longLine;
         if ( longLine.isEmpty() ) {
@@ -44,19 +48,21 @@ public:
         }
         else {
             WrappedStringPart lineToWrap( longLine );
-            while ( lineToWrap.size() > visibleColumns.get() ) {
-                WrappedStringPart stringToWrap = lineToWrap.left( visibleColumns.get() );
+            auto currentColumns = firstLineColumns.get() > 0 ? firstLineColumns : visibleColumns;
+            while ( lineToWrap.size() > currentColumns.get() ) {
+                WrappedStringPart stringToWrap = lineToWrap.left( currentColumns.get() );
                 auto lastSpaceIt = std::find_if( stringToWrap.rbegin(), stringToWrap.rend(),
                                                  []( QChar c ) { return c.isSpace(); } );
                 if ( lastSpaceIt == stringToWrap.rend() ) {
-                    wrappedLines_.push_back( lineToWrap.left( visibleColumns.get() ) );
-                    lineToWrap = lineToWrap.mid( visibleColumns.get() );
+                    wrappedLines_.push_back( lineToWrap.left( currentColumns.get() ) );
+                    lineToWrap = lineToWrap.mid( currentColumns.get() );
                 }
                 else {
                     auto spacePos = std::distance( stringToWrap.begin(), lastSpaceIt.base() );
                     wrappedLines_.push_back( lineToWrap.left( spacePos ) );
                     lineToWrap = lineToWrap.mid( spacePos );
                 }
+                currentColumns = visibleColumns;
             }
             if ( lineToWrap.size() > 0 ) {
                 wrappedLines_.push_back( lineToWrap );
