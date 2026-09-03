@@ -159,6 +159,15 @@ struct CrawlerWidget::access_by<CrawlerWidgetPrivate> {
         return crawler->logMainView_->grab().toImage();
     }
 
+    // Last column of the main view's viewport, in the coordinates of the grabbed
+    // widget: the frame offsets the viewport inside it
+    int mainViewportRightEdge()
+    {
+        auto* view = crawler->logMainView_;
+        const auto origin = view->viewport()->mapTo( view, QPoint{ 0, 0 } );
+        return origin.x() + view->viewport()->width() - 1;
+    }
+
     void annotate( LineNumber line, const QString& text )
     {
         crawler->annotateLineFromMain( line, text );
@@ -360,6 +369,23 @@ SCENARIO( "Crawler widget search", "[ui]" )
             THEN( "the main view draws something it did not draw before" )
             {
                 REQUIRE( withAnnotation != withoutAnnotation );
+            }
+
+            THEN( "the label reaches the right edge of the viewport" )
+            {
+                // The rightmost pixel the label changed has to be the last
+                // column of the viewport, otherwise a gap crept back in
+                auto lastChangedColumn = -1;
+                for ( auto x = 0; x < withAnnotation.width(); ++x ) {
+                    for ( auto y = 0; y < withAnnotation.height(); ++y ) {
+                        if ( withAnnotation.pixel( x, y ) != withoutAnnotation.pixel( x, y ) ) {
+                            lastChangedColumn = x;
+                            break;
+                        }
+                    }
+                }
+
+                REQUIRE( lastChangedColumn == crawlerVisitor.mainViewportRightEdge() );
             }
 
             AND_WHEN( "annotations are hidden" )

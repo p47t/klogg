@@ -193,10 +193,9 @@ int textWidth( const QFontMetrics& fm, const QStringView& text )
 
 // Geometry and colour of the label a line annotation is drawn in
 constexpr int AnnotationPadding = 5;
-// Horizontal gap between the label and the right edge of the view. There is
-// deliberately no vertical one: the label has to be tall enough to hold the
+// The label sits flush against the right edge of the view, with no margin
+// around it in either direction. It also has to be tall enough to hold the
 // descenders of the comment, or drawText clips them.
-constexpr int AnnotationMargin = 2;
 constexpr int AnnotationArrowWidth = 9;
 constexpr const char* AnnotationColor = "#ffd45e";
 
@@ -2608,8 +2607,7 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
     // Metrics of the annotation font, needed per line both to reserve room on
     // the line and to draw the label
     const QFontMetrics annotationMetrics{ annotationFont() };
-    const auto annotationAvailableWidth
-        = viewport()->width() - contentStartPosX - 2 * AnnotationMargin;
+    const auto annotationAvailableWidth = viewport()->width() - contentStartPosX;
 
     // Position in pixel of the base line of the line to print
     int yPos = 0;
@@ -2916,8 +2914,8 @@ void AbstractLogView::drawAnnotation( QPainter* painter, const QString& text, in
     // Full text height, so ascenders and descenders both fit. The italic font
     // can be marginally taller than the line, so centre it on the row.
     const auto boxHeight = std::max( painter->fontMetrics().height(), 1 );
-    const QRect box{ rightEdgePx - labelWidth - AnnotationMargin,
-                     yPos + ( charHeight_ - boxHeight ) / 2, labelWidth, boxHeight };
+    const QRect box{ rightEdgePx - labelWidth, yPos + ( charHeight_ - boxHeight ) / 2, labelWidth,
+                     boxHeight };
 
     // Rectangle with the left side pulled into a point, drawn clockwise from
     // the tip of the arrow head
