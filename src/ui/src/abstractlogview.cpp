@@ -61,10 +61,12 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QFontMetrics>
 #include <QGestureEvent>
-#include <QInputDialog>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
 #include <QPaintEvent>
@@ -75,6 +77,7 @@
 #include <QScrollBar>
 #include <QShortcut>
 #include <QStringView>
+#include <QVBoxLayout>
 #include <QtCore>
 
 #include <tbb/flow_graph.h>
@@ -200,6 +203,11 @@ constexpr const char* AnnotationColor = "#ffd45e";
 // The arrow head and the padding both eat into the label, so the comment needs
 // room next to them
 constexpr int AnnotationDecorations = AnnotationArrowWidth + 2 * AnnotationPadding;
+
+// A comment is meant to stay short enough to fit on the line it labels, and 60
+// characters is the length the tooling settled on. The editor is sized to hold
+// one of that length in full, rather than scrolling inside a narrow field.
+constexpr int AnnotationEditorColumns = 60;
 
 // The comment as it will be drawn, elided to what availableWidth can hold, plus
 // the resulting total width of the label. An empty text means there is not
@@ -1528,15 +1536,36 @@ void AbstractLogView::annotateSelected()
         return;
     }
 
-    bool accepted = false;
-    const auto comment = QInputDialog::getText(
-        this, tr( "Annotate line" ),
-        tr( "Comment for line %1" ).arg( displayLineNumber( *selectedLine ).get() ),
-        QLineEdit::Normal, lineAnnotation( *selectedLine ), &accepted );
+    // Built by hand rather than with QInputDialog, which sizes itself to its
+    // label and ignores both resize() and a minimum width, leaving a field too
+    // narrow to read a comment in.
+    QDialog dialog{ this };
+    dialog.setWindowTitle( tr( "Annotate line" ) );
 
-    if ( !accepted ) {
+    auto* editor = new QLineEdit( lineAnnotation( *selectedLine ), &dialog );
+    // A couple of columns over the target, because 'x' is narrower than the
+    // average character and 60 capitals would otherwise not quite fit
+    editor->setMinimumWidth(
+        textWidth( QFontMetrics{ editor->font() },
+                   QString( AnnotationEditorColumns + 2, QLatin1Char( 'x' ) ) ) );
+    editor->selectAll();
+
+    auto* buttons
+        = new QDialogButtonBox( QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog );
+    connect( buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept );
+    connect( buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject );
+
+    auto* layout = new QVBoxLayout( &dialog );
+    layout->addWidget( new QLabel(
+        tr( "Comment for line %1" ).arg( displayLineNumber( *selectedLine ).get() ), &dialog ) );
+    layout->addWidget( editor );
+    layout->addWidget( buttons );
+
+    if ( dialog.exec() != QDialog::Accepted ) {
         return;
     }
+
+    const auto comment = editor->text();
 
     // An empty comment removes the annotation. Show the annotations again if
     // they were hidden, otherwise the edit would seem to have done nothing.

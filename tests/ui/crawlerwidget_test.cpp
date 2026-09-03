@@ -21,7 +21,9 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QDialog>
 #include <QFile>
+#include <QLineEdit>
 #include <QSignalSpy>
 #include <QTemporaryFile>
 #include <QTest>
@@ -212,6 +214,29 @@ struct CrawlerWidget::access_by<CrawlerWidgetPrivate> {
     bool copyFilteredViewSnapshot()
     {
         return QMetaObject::invokeMethod( crawler->filteredView_, "copySnapshot" );
+    }
+
+    // Open the annotation editor on a line of the bottom view and measure the
+    // field it offers, then dismiss it. The dialog is modal, so it has to be
+    // inspected from a callback that runs while exec() is blocking.
+    int annotationEditorWidth( LineNumber line )
+    {
+        crawler->filteredView_->trySelectLine( line );
+
+        int fieldWidth = 0;
+        QTimer::singleShot( 0, [ &fieldWidth ]() {
+            auto* dialog = qobject_cast<QDialog*>( QApplication::activeModalWidget() );
+            if ( dialog ) {
+                if ( auto* field = dialog->findChild<QLineEdit*>() ) {
+                    fieldWidth = field->width();
+                }
+                dialog->reject();
+            }
+        } );
+
+        QMetaObject::invokeMethod( crawler->filteredView_, "annotateSelected" );
+
+        return fieldWidth;
     }
 };
 
@@ -456,6 +481,29 @@ SCENARIO( "Crawler widget search", "[ui]" )
                         QChar::CarriageReturn );
                     REQUIRE( mainText.split( QChar::LineFeed )[ 2 ] == "     >> first symptom" );
                 }
+            }
+        }
+
+        WHEN( "opening the annotation editor" )
+        {
+            crawlerVisitor.crawler->resize( 900, 600 );
+            crawlerVisitor.setSearchPattern( "this is line" );
+            crawlerVisitor.runSearch();
+
+            REQUIRE( waitUiState( [ &crawlerVisitor ]() {
+                return crawlerVisitor.getLogFilteredNbLines().get() == SL_NB_LINES;
+            } ) );
+
+            const auto fieldWidth = crawlerVisitor.annotationEditorWidth( 5_lnum );
+
+            THEN( "the comment field holds 60 characters without scrolling" )
+            {
+                REQUIRE( fieldWidth > 0 );
+
+                QLineEdit reference;
+                const auto sixtyChars = QFontMetrics{ reference.font() }.horizontalAdvance(
+                    QString( 60, QLatin1Char( 'x' ) ) );
+                REQUIRE( fieldWidth >= sixtyChars );
             }
         }
 
