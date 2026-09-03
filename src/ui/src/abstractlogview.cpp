@@ -559,6 +559,7 @@ void AbstractLogView::mousePressEvent( QMouseEvent* mouseEvent )
         if ( selection_.isSingleLine() ) {
             copyAction_->setText( tr( "&Copy this line" ) );
             copyWithLineNumbersAction_->setText( tr( "Copy this line with line number" ) );
+            copyWithAnnotationsAction_->setText( tr( "Copy this line with its annotation" ) );
 
             setSearchStartAction_->setEnabled( true );
             setSearchEndAction_->setEnabled( true );
@@ -571,6 +572,7 @@ void AbstractLogView::mousePressEvent( QMouseEvent* mouseEvent )
             copyAction_->setStatusTip( tr( "Copy the selection" ) );
 
             copyWithLineNumbersAction_->setText( tr( "Copy with line numbers" ) );
+            copyWithAnnotationsAction_->setText( tr( "Copy with annotations" ) );
 
             setSearchStartAction_->setEnabled( false );
             setSearchEndAction_->setEnabled( false );
@@ -599,6 +601,7 @@ void AbstractLogView::mousePressEvent( QMouseEvent* mouseEvent )
                                                 : tr( "&Annotate..." ) );
         clearAnnotationAction_->setEnabled( hasAnnotation );
         toggleAnnotationsAction_->setChecked( annotationsVisible_ );
+        copyWithAnnotationsAction_->setEnabled( hasAnnotations() );
 
         if ( selection_.isPortion() ) {
             findNextAction_->setEnabled( true );
@@ -1238,6 +1241,11 @@ QString AbstractLogView::lineAnnotation( LineNumber ) const
     return {};
 }
 
+bool AbstractLogView::hasAnnotations() const
+{
+    return false;
+}
+
 void AbstractLogView::setOverview( Overview* overview, OverviewWidget* overviewWidget )
 {
     overview_ = overview;
@@ -1468,6 +1476,40 @@ void AbstractLogView::copyWithLineNumbers()
         sendTextToClipboard( text );
     } catch ( std::exception& err ) {
         LOG_ERROR << "failed to copy data to clipboard " << err.what();
+    }
+}
+
+// Copy the selection together with the comments attached to it
+void AbstractLogView::copyWithAnnotations()
+{
+    try {
+        sendTextToClipboard( getSelectedTextWithAnnotations() );
+    } catch ( std::exception& err ) {
+        LOG_ERROR << "failed to copy data to clipboard " << err.what();
+    }
+}
+
+// Copy a picture of this panel to the clipboard. It is the panel as drawn, so
+// annotations, marks and highlights all come along, which is the point: the
+// result is meant to be pasted into a ticket or a review.
+void AbstractLogView::copySnapshot()
+{
+    auto clipboard = QApplication::clipboard();
+    if ( !clipboard ) {
+        LOG_WARNING << "Unable to access the clipboard.";
+        return;
+    }
+
+    const auto snapshot = grab();
+    if ( snapshot.isNull() ) {
+        LOG_WARNING << "Nothing to snapshot, the panel has no visible area";
+        return;
+    }
+
+    try {
+        clipboard->setPixmap( snapshot );
+    } catch ( std::exception& err ) {
+        LOG_ERROR << "failed to copy snapshot to clipboard " << err.what();
     }
 }
 
@@ -1759,6 +1801,58 @@ LineNumber AbstractLogView::getTopLine() const
 QString AbstractLogView::getSelectedText() const
 {
     return selection_.getSelectedText( logData_ );
+}
+
+// The export is line oriented: a partial selection contributes its whole line,
+// because a comment is attached to a line and not to a range of characters
+// inside it. Line numbers are always included - an annotation that cannot be
+// traced back to a position in the file is of little use in a report.
+QString AbstractLogView::getSelectedTextWithAnnotations() const
+{
+    const auto lines = selection_.getLines();
+    if ( lines.empty() ) {
+        return {};
+    }
+
+    const auto lineTexts = logData_->getLines(
+        lines.front(), LinesCount( static_cast<LinesCount::UnderlyingType>( lines.size() ) ) );
+
+    // Line numbers grow with the index in both views, so the last one is the
+    // widest and every number can be padded to it
+    const auto numberWidth = static_cast<int>(
+        QString::number( logData_->getLineNumber( lines.back() ).get() ).size() );
+    const QString annotationIndent( numberWidth + 2, QChar::Space );
+
+    QString text;
+
+    const auto appendNewLine = [ &text ]() {
+        if ( text.isEmpty() ) {
+            return;
+        }
+#if defined( Q_OS_WIN )
+        text.append( QChar::CarriageReturn );
+#endif
+        text.append( QChar::LineFeed );
+    };
+
+    for ( auto i = size_t{ 0 }; i < lines.size() && i < lineTexts.size(); ++i ) {
+        auto lineText = lineTexts[ i ];
+        lineText.replace( QChar::Null, QChar::Space );
+
+        appendNewLine();
+        text.append( QStringLiteral( "%1: %2" )
+                         .arg( logData_->getLineNumber( lines[ i ] ).get(), numberWidth )
+                         .arg( lineText ) );
+
+        const auto annotation = lineAnnotation( lines[ i ] );
+        if ( !annotation.isEmpty() ) {
+            appendNewLine();
+            text.append( annotationIndent );
+            text.append( QStringLiteral( ">> %1" ).arg( annotation ) );
+        }
+    }
+
+    return text;
 }
 
 bool AbstractLogView::isPartialSelection() const
@@ -2109,6 +2203,17 @@ void AbstractLogView::createMenu()
     connect( copyWithLineNumbersAction_, &QAction::triggered, this,
              [ this ]( auto ) { this->copyWithLineNumbers(); } );
 
+    copyWithAnnotationsAction_ = new QAction( tr( "Copy with annotations" ), this );
+    copyWithAnnotationsAction_->setStatusTip(
+        tr( "Copy the selected lines and the comments attached to them" ) );
+    connect( copyWithAnnotationsAction_, &QAction::triggered, this,
+             [ this ]( auto ) { this->copyWithAnnotations(); } );
+
+    copySnapshotAction_ = new QAction( tr( "Copy panel snapshot" ), this );
+    copySnapshotAction_->setStatusTip( tr( "Copy a picture of this panel to the clipboard" ) );
+    connect( copySnapshotAction_, &QAction::triggered, this,
+             [ this ]( auto ) { this->copySnapshot(); } );
+
     markAction_ = new QAction( tr( "&Mark" ), this );
     connect( markAction_, &QAction::triggered, this, [ this ]( auto ) { this->markSelected(); } );
 
@@ -2214,6 +2319,8 @@ void AbstractLogView::createMenu()
     popupMenu_->addSeparator();
     popupMenu_->addAction( copyAction_ );
     popupMenu_->addAction( copyWithLineNumbersAction_ );
+    popupMenu_->addAction( copyWithAnnotationsAction_ );
+    popupMenu_->addAction( copySnapshotAction_ );
     popupMenu_->addAction( sendToScratchpadAction_ );
     popupMenu_->addAction( replaceInScratchpadAction_ );
     popupMenu_->addSeparator();

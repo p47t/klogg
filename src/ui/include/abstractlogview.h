@@ -136,6 +136,9 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     LineNumber getTopLine() const;
     // Return the text of the current selection.
     QString getSelectedText() const;
+    // Return the selected lines prefixed with their line number, each annotated
+    // line followed by its comment on a line of its own.
+    QString getSelectedTextWithAnnotations() const;
     // True for partial selection
     bool isPartialSelection() const;
     // Instructs the widget to select the whole text.
@@ -186,6 +189,12 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     // The user comment attached to the line, empty if the line has none.
     // The line number is in this view's own coordinates.
     virtual QString lineAnnotation( LineNumber lineNumber ) const;
+
+    // Whether anything in this view is annotated at all. Used to enable the
+    // annotation export, which has nothing to add without one. Deliberately not
+    // asked per selection: that would be a lookup for every selected line, and
+    // the selection can be the whole file.
+    virtual bool hasAnnotations() const;
 
     // Line number to display for line at the given index
     virtual LineNumber displayLineNumber( LineNumber lineNumber ) const;
@@ -314,6 +323,8 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     void findPreviousSelected();
     void copy();
     void copyWithLineNumbers();
+    void copyWithAnnotations();
+    void copySnapshot();
     void markSelected();
     void annotateSelected();
     void saveToFile();
@@ -412,6 +423,8 @@ class AbstractLogView : public QAbstractScrollArea, public SearchableWidgetInter
     QMenu* popupMenu_;
     QAction* copyAction_;
     QAction* copyWithLineNumbersAction_;
+    QAction* copyWithAnnotationsAction_;
+    QAction* copySnapshotAction_;
     QAction* markAction_;
     QAction* annotateAction_;
     QAction* clearAnnotationAction_;

@@ -64,6 +64,8 @@ class FilteredView : public AbstractLogView
 
     QString lineAnnotation( LineNumber lineNumber ) const override;
 
+    bool hasAnnotations() const override;
+
     // Number of the filtered line relative to the unfiltered source
     LineNumber displayLineNumber(LineNumber lineNumber ) const override;
     LineNumber lineIndex( LineNumber lineNumber ) const override;

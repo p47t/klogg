@@ -88,6 +88,11 @@ QString LogMainView::lineAnnotation( LineNumber lineNumber ) const
     return {};
 }
 
+bool LogMainView::hasAnnotations() const
+{
+    return filteredData_ && !filteredData_->getAnnotations().empty();
+}
+
 void LogMainView::doRegisterShortcuts()
 {
     LOG_INFO << "Registering shortcuts for main view";

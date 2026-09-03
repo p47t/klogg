@@ -19,6 +19,8 @@
 
 #include <catch2/catch.hpp>
 
+#include <QApplication>
+#include <QClipboard>
 #include <QFile>
 #include <QSignalSpy>
 #include <QTemporaryFile>
@@ -193,6 +195,23 @@ struct CrawlerWidget::access_by<CrawlerWidgetPrivate> {
     QString viewContext()
     {
         return crawler->doGetViewContext()->toString();
+    }
+
+    QString filteredViewTextWithAnnotations()
+    {
+        return crawler->filteredView_->getSelectedTextWithAnnotations();
+    }
+
+    QString mainViewTextWithAnnotations()
+    {
+        return crawler->logMainView_->getSelectedTextWithAnnotations();
+    }
+
+    // The context menu entries are private slots, so they are triggered through
+    // the meta object the same way the actions themselves trigger them
+    bool copyFilteredViewSnapshot()
+    {
+        return QMetaObject::invokeMethod( crawler->filteredView_, "copySnapshot" );
     }
 };
 
@@ -379,6 +398,92 @@ SCENARIO( "Crawler widget search", "[ui]" )
                     REQUIRE( crawlerVisitor.annotationOfLine( 3_lnum ).isEmpty() );
                     REQUIRE( crawlerVisitor.grabMainView() == withoutAnnotation );
                 }
+            }
+        }
+
+        WHEN( "copying annotated lines out of the filtered view" )
+        {
+            crawlerVisitor.crawler->resize( 900, 600 );
+            crawlerVisitor.setSearchPattern( "this is line" );
+            crawlerVisitor.runSearch();
+
+            REQUIRE( waitUiState( [ &crawlerVisitor ]() {
+                return crawlerVisitor.getLogFilteredNbLines().get() == SL_NB_LINES;
+            } ) );
+
+            crawlerVisitor.annotate( 1_lnum, "first symptom" );
+            crawlerVisitor.annotate( 2_lnum, "root cause" );
+
+            crawlerVisitor.selectAllInFilteredView();
+            // The export uses the platform line ending, drop the CR so the
+            // expectations below read the same everywhere
+            const auto text
+                = crawlerVisitor.filteredViewTextWithAnnotations().remove( QChar::CarriageReturn );
+            const auto lines = text.split( QChar::LineFeed );
+
+            THEN( "each comment follows the line it is attached to" )
+            {
+                // Line numbers are 1 based, so index 1 is line 2. The comment
+                // lands on its own line right after it, indented past the
+                // number column
+                REQUIRE( lines[ 1 ]
+                         == "  2: LOGDATA \t is a part of glogg, we are going to "
+                            "test it thoroughly, this is line 000001" );
+                REQUIRE( lines[ 2 ] == "     >> first symptom" );
+                REQUIRE( lines[ 4 ] == "     >> root cause" );
+            }
+
+            THEN( "unannotated lines are copied with their line number only" )
+            {
+                REQUIRE( lines[ 0 ]
+                         == "  1: LOGDATA \t is a part of glogg, we are going to "
+                            "test it thoroughly, this is line 000000" );
+                REQUIRE_FALSE( lines[ 0 ].contains( ">>" ) );
+            }
+
+            THEN( "the export has a row per line plus one per comment" )
+            {
+                REQUIRE( lines.size() == SL_NB_LINES + 2 );
+            }
+
+            AND_WHEN( "the same lines are copied from the main view" )
+            {
+                crawlerVisitor.selectAllInMainView();
+
+                THEN( "the comments are attached to the same file lines" )
+                {
+                    const auto mainText = crawlerVisitor.mainViewTextWithAnnotations().remove(
+                        QChar::CarriageReturn );
+                    REQUIRE( mainText.split( QChar::LineFeed )[ 2 ] == "     >> first symptom" );
+                }
+            }
+        }
+
+        WHEN( "copying a snapshot of the filtered view" )
+        {
+            crawlerVisitor.crawler->resize( 900, 600 );
+            crawlerVisitor.setSearchPattern( "this is line" );
+            crawlerVisitor.runSearch();
+
+            REQUIRE( waitUiState( [ &crawlerVisitor ]() {
+                return crawlerVisitor.getLogFilteredNbLines().get() == SL_NB_LINES;
+            } ) );
+
+            crawlerVisitor.annotate( 1_lnum, "first symptom" );
+            crawlerVisitor.render();
+
+            auto* clipboard = QApplication::clipboard();
+            REQUIRE( clipboard != nullptr );
+            clipboard->clear();
+
+            REQUIRE( crawlerVisitor.copyFilteredViewSnapshot() );
+
+            THEN( "the clipboard holds a picture of the panel" )
+            {
+                const auto image = clipboard->image();
+                REQUIRE_FALSE( image.isNull() );
+                REQUIRE( image.width() > 0 );
+                REQUIRE( image.height() > 0 );
             }
         }
 

@@ -244,6 +244,29 @@ Comments written in *klogg* are stored in the session, per file, along with
 the marks. They survive a reload but are dropped when the file is
 truncated, because the line numbers no longer refer to the same lines.
 
+#### Taking annotations out of klogg
+
+Two context menu entries in either view copy an annotated excerpt, which is
+mostly useful from the bottom view once the search has narrowed the log down
+to the lines that matter:
+
+- `Copy with annotations` copies the selected lines prefixed with their line
+  number, each annotated line followed by its comment on a line of its own,
+  indented and introduced by `>>`. It is disabled while nothing is
+  annotated. Selecting part of a line still copies the whole line, because a
+  comment belongs to a line rather than to a range of characters in it.
+- `Copy panel snapshot` puts a picture of the panel on the clipboard, drawn
+  exactly as it is on screen, so the labels, marks and highlight colours all
+  come along. Only the visible area is captured; scroll or resize the panel
+  first if more of the log should be in the picture.
+
+```text
+  42: connect() failed: no route to host
+      >> [F2] first symptom, 12s after the retry storm starts
+  87: giving up after 5 attempts
+      >> [F4] the retry budget is exhausted here
+```
+
 #### Annotations from other programs
 
 Annotations can also come from outside *klogg*, so that a script, an

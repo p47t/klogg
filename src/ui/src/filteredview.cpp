@@ -82,6 +82,11 @@ QString FilteredView::lineAnnotation( LineNumber lineNumber ) const
     return logFilteredData_->annotationByIndex( lineNumber );
 }
 
+bool FilteredView::hasAnnotations() const
+{
+    return !logFilteredData_->getAnnotations().empty();
+}
+
 LineNumber FilteredView::displayLineNumber( LineNumber lineNumber ) const
 {
     // Display a 1-based index

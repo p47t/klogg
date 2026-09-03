@@ -65,6 +65,8 @@ class LogMainView : public AbstractLogView
 
     QString lineAnnotation( LineNumber lineNumber ) const override;
 
+    bool hasAnnotations() const override;
+
     void doRegisterShortcuts() override;
 
   private:
