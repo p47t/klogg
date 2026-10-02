@@ -305,7 +305,7 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
     std::chrono::microseconds fileReadingDuration{ 0 };
 
     using BlockDataType = SearchBlockData*;
-    QSemaphore blockLimiter( matchingThreadsCount * 3 );
+    QSemaphore blockLimiter( static_cast<int>( matchingThreadsCount * 3 ) );
 
     auto lineBlocksQueue = tbb::flow::buffer_node<BlockDataType>( searchGraph );
 
