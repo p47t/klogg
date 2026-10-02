@@ -18,6 +18,7 @@
  */
 
 #include <catch2/catch.hpp>
+#include <memory>
 
 #include <QApplication>
 #include <QClipboard>
@@ -233,17 +234,49 @@ struct CrawlerWidget::access_by<CrawlerWidgetPrivate> {
         crawler->filteredView_->trySelectLine( line );
 
         int fieldWidth = 0;
-        QTimer::singleShot( 0, [ &fieldWidth ]() {
-            auto* dialog = qobject_cast<QDialog*>( QApplication::activeModalWidget() );
+        auto timer = std::make_shared<QTimer>();
+        auto dismissed = std::make_shared<bool>( false );
+
+        auto dismissDialog = [ timer, dismissed, &fieldWidth, this ]() {
+            if ( *dismissed ) {
+                return;
+            }
+            QDialog* dialog = qobject_cast<QDialog*>( QApplication::activeModalWidget() );
+            if ( !dialog ) {
+                dialog = crawler->filteredView_->findChild<QDialog*>();
+            }
+            if ( !dialog ) {
+                for ( auto* widget : QApplication::topLevelWidgets() ) {
+                    if ( ( dialog = qobject_cast<QDialog*>( widget ) ) ) {
+                        break;
+                    }
+                }
+            }
+            if ( !dialog ) {
+                for ( auto* widget : QApplication::allWidgets() ) {
+                    if ( ( dialog = qobject_cast<QDialog*>( widget ) ) ) {
+                        break;
+                    }
+                }
+            }
             if ( dialog ) {
+                *dismissed = true;
                 if ( auto* field = dialog->findChild<QLineEdit*>() ) {
                     fieldWidth = field->width();
                 }
                 dialog->reject();
+                timer->stop();
             }
-        } );
+        };
+
+        QObject::connect( timer.get(), &QTimer::timeout, dismissDialog );
+        timer->start( 50 );
+
+        QTimer::singleShot( 0, dismissDialog );
 
         QMetaObject::invokeMethod( crawler->filteredView_, "annotateSelected" );
+
+        timer->stop();
 
         return fieldWidth;
     }
