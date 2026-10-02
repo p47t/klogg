@@ -305,8 +305,7 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
     std::chrono::microseconds fileReadingDuration{ 0 };
 
     using BlockDataType = SearchBlockData*;
-    auto blockPrefetcher
-        = tbb::flow::limiter_node<BlockDataType>( searchGraph, matchingThreadsCount * 3 );
+    QSemaphore blockLimiter( matchingThreadsCount * 3 );
 
     auto lineBlocksQueue = tbb::flow::buffer_node<BlockDataType>( searchGraph );
 
@@ -363,10 +362,12 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
     std::chrono::microseconds matchCombiningDuration{ 0 };
 
     auto matchProcessor
-        = tbb::flow::function_node<BlockDataType, tbb::flow::continue_msg, tbb::flow::rejecting>(
+        = tbb::flow::function_node<BlockDataType, tbb::flow::continue_msg, tbb::flow::queueing>(
             searchGraph, 1, [ & ]( const BlockDataType& blockData ) {
                 if ( interruptRequested_ ) {
                     LOG_INFO << "Match processor interrupted";
+                    delete blockData;
+                    blockLimiter.release( 1 );
                     return tbb::flow::continue_msg{};
                 }
 
@@ -396,6 +397,7 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
                 }
 
                 delete blockData;
+                blockLimiter.release( 1 );
 
                 const auto matchProcessorEndTime = high_resolution_clock::now();
                 matchCombiningDuration += duration_cast<microseconds>( matchProcessorEndTime
@@ -414,15 +416,12 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
                 return tbb::flow::continue_msg{};
             } );
 
-    tbb::flow::make_edge( blockPrefetcher, lineBlocksQueue );
-
     for ( auto& regexMatcher : regexMatchers ) {
         tbb::flow::make_edge( lineBlocksQueue, std::get<RegexMatcherNode>( regexMatcher ) );
         tbb::flow::make_edge( std::get<RegexMatcherNode>( regexMatcher ), resultsQueue );
     }
 
     tbb::flow::make_edge( resultsQueue, matchProcessor );
-    tbb::flow::make_edge( matchProcessor, blockPrefetcher.decrementer() );
 
     auto chunkStart = initialLine;
     while ( chunkStart < endLine && !interruptRequested_ ) {
@@ -451,9 +450,18 @@ void SearchOperation::doSearch( SearchData& searchData, LineNumber initialLine )
         chunkStart = chunkStart + nbLinesInChunk;
         fileReadingDuration += chunkReadTime;
 
-        while ( !blockPrefetcher.try_put( blockData ) && !interruptRequested_ ) {
-            std::this_thread::sleep_for( std::chrono::milliseconds( 1 ) );
+        while ( !blockLimiter.tryAcquire( 1, 10 ) ) {
+            if ( interruptRequested_ ) {
+                break;
+            }
         }
+
+        if ( interruptRequested_ ) {
+            delete blockData;
+            break;
+        }
+
+        lineBlocksQueue.try_put( blockData );
     }
 
     searchGraph.wait_for_all();
