@@ -2732,10 +2732,10 @@ void AbstractLogView::drawTextArea( QPaintDevice* paintDevice )
         if ( useTextWrap_ && annotationLayout.width > 0 ) {
             // Never give up more than half the line to the annotation, so that
             // a long comment cannot squeeze the log text down to nothing
-            const auto reserved
+            const auto reservedCols
                 = LineLength{ std::min( annotationLayout.width / charWidth_ + 2,
                                         static_cast<int>( nbVisibleCols.get() / 2 ) ) };
-            firstLineLength = nbVisibleCols - reserved;
+            firstLineLength = nbVisibleCols - reservedCols;
         }
 
         const WrappedString wrappedLineView{ expandedLine, wrappedLineLength, firstLineLength };
@@ -2932,7 +2932,7 @@ void AbstractLogView::drawAnnotation( QPainter* painter, const QString& text, in
     painter->setBrush( QBrush{ backColor } );
     painter->drawPolygon( shape, 5 );
 
-    painter->setPen( backColor.lightnessF() > 0.5f ? Qt::black : Qt::white );
+    painter->setPen( backColor.lightnessF() > 0.5 ? Qt::black : Qt::white );
     painter->drawText(
         box.adjusted( AnnotationArrowWidth + AnnotationPadding, 0, -AnnotationPadding, 0 ),
         Qt::AlignVCenter | Qt::AlignRight, text );

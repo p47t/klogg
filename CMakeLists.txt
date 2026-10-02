@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.12)
 
+if(APPLE AND NOT CMAKE_OSX_SYSROOT)
+  set(CMAKE_OSX_SYSROOT "macosx" CACHE STRING "macOS SDK" FORCE)
+endif()
+
 project(
   klogg
   VERSION 24.11.0

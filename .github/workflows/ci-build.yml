@@ -155,7 +155,7 @@ jobs:
             qt_modules: qt5compat
             arch: x64
             artifacts_id: macos-intel-qt6
-            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=13.0
+            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=13.0 -DCMAKE_OSX_SYSROOT=macosx
           - os: macos
             runner: macos-14
             qt_version: 6.7.3
@@ -163,7 +163,7 @@ jobs:
             qt_modules: qt5compat
             arch: arm64
             artifacts_id: macos-arm-qt6
-            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=14.0
+            cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=14.0 -DCMAKE_OSX_SYSROOT=macosx
 
     runs-on: ${{ matrix.config.runner }}
     steps:
@@ -176,6 +176,7 @@ jobs:
             sudo xcode-select -s /Applications/Xcode_15.2.app
           fi
           xcodebuild -version || true
+          echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
 
 #Install build deps
       - name: Set brew env
