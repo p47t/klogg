@@ -29,7 +29,7 @@ jobs:
             qt_version: 6.7.3
             qt_arch: linux_gcc_64
             qt_modules: qt5compat
-            languages: ['c-cpp']
+            languages: 'c-cpp'
 
     steps:
     - name: Checkout repository
