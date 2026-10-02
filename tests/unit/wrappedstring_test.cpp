@@ -44,8 +44,8 @@ SCENARIO( "Wrapping a line", "[wrappedstring]" )
         THEN( "It wraps on word boundaries" )
         {
             REQUIRE( wrapped.wrappedLinesCount() == 2 );
-            REQUIRE( wrapped.wrappedLine( 0 ) == "aaa bbb ccc " );
-            REQUIRE( wrapped.wrappedLine( 1 ) == "ddd eee fff" );
+            REQUIRE( wrapped.wrappedLine( 0 ) == QLatin1String( "aaa bbb ccc " ) );
+            REQUIRE( wrapped.wrappedLine( 1 ) == QLatin1String( "ddd eee fff" ) );
         }
     }
 
@@ -56,10 +56,10 @@ SCENARIO( "Wrapping a line", "[wrappedstring]" )
         THEN( "Only the first line uses the narrower width" )
         {
             REQUIRE( wrapped.wrappedLinesCount() == 3 );
-            REQUIRE( wrapped.wrappedLine( 0 ) == "aaa bbb " );
+            REQUIRE( wrapped.wrappedLine( 0 ) == QLatin1String( "aaa bbb " ) );
             // The remaining lines get the full width again
-            REQUIRE( wrapped.wrappedLine( 1 ) == "ccc ddd eee " );
-            REQUIRE( wrapped.wrappedLine( 2 ) == "fff" );
+            REQUIRE( wrapped.wrappedLine( 1 ) == QLatin1String( "ccc ddd eee " ) );
+            REQUIRE( wrapped.wrappedLine( 2 ) == QLatin1String( "fff" ) );
         }
     }
 
@@ -70,8 +70,8 @@ SCENARIO( "Wrapping a line", "[wrappedstring]" )
         THEN( "The line is wrapped early anyway" )
         {
             REQUIRE( wrapped.wrappedLinesCount() == 2 );
-            REQUIRE( wrapped.wrappedLine( 0 ) == "aaa bbb ccc " );
-            REQUIRE( wrapped.wrappedLine( 1 ) == "ddd eee fff" );
+            REQUIRE( wrapped.wrappedLine( 0 ) == QLatin1String( "aaa bbb ccc " ) );
+            REQUIRE( wrapped.wrappedLine( 1 ) == QLatin1String( "ddd eee fff" ) );
         }
     }
 
@@ -82,7 +82,7 @@ SCENARIO( "Wrapping a line", "[wrappedstring]" )
         THEN( "It is ignored and the normal width is used throughout" )
         {
             REQUIRE( wrapped.wrappedLinesCount() == 2 );
-            REQUIRE( wrapped.wrappedLine( 0 ) == "aaa bbb ccc " );
+            REQUIRE( wrapped.wrappedLine( 0 ) == QLatin1String( "aaa bbb ccc " ) );
         }
     }
 
@@ -93,9 +93,9 @@ SCENARIO( "Wrapping a line", "[wrappedstring]" )
         THEN( "It is cut at the width of each line" )
         {
             REQUIRE( wrapped.wrappedLinesCount() == 3 );
-            REQUIRE( wrapped.wrappedLine( 0 ) == "aa" );
-            REQUIRE( wrapped.wrappedLine( 1 ) == "aaaa" );
-            REQUIRE( wrapped.wrappedLine( 2 ) == "aaaa" );
+            REQUIRE( wrapped.wrappedLine( 0 ) == QLatin1String( "aa" ) );
+            REQUIRE( wrapped.wrappedLine( 1 ) == QLatin1String( "aaaa" ) );
+            REQUIRE( wrapped.wrappedLine( 2 ) == QLatin1String( "aaaa" ) );
         }
     }
 

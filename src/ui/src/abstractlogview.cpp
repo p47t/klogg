@@ -2932,7 +2932,7 @@ void AbstractLogView::drawAnnotation( QPainter* painter, const QString& text, in
     painter->setBrush( QBrush{ backColor } );
     painter->drawPolygon( shape, 5 );
 
-    painter->setPen( backColor.lightnessF() > 0.5 ? Qt::black : Qt::white );
+    painter->setPen( backColor.lightness() > 127 ? Qt::black : Qt::white );
     painter->drawText(
         box.adjusted( AnnotationArrowWidth + AnnotationPadding, 0, -AnnotationPadding, 0 ),
         Qt::AlignVCenter | Qt::AlignRight, text );

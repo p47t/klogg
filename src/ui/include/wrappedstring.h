@@ -27,6 +27,25 @@
 #include "containers.h"
 #include "linetypes.h"
 
+#if QT_VERSION < QT_VERSION_CHECK( 6, 0, 0 )
+inline bool operator==( QStringView lhs, const char* rhs )
+{
+    return lhs == QLatin1String( rhs );
+}
+inline bool operator==( const char* lhs, QStringView rhs )
+{
+    return QLatin1String( lhs ) == rhs;
+}
+inline bool operator!=( QStringView lhs, const char* rhs )
+{
+    return !( lhs == rhs );
+}
+inline bool operator!=( const char* lhs, QStringView rhs )
+{
+    return !( lhs == rhs );
+}
+#endif
+
 class WrappedString {
 public:
     using WrappedStringPart = QStringView;
