@@ -27,6 +27,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QtGlobal>
 
 #include "abstractlogdata.h"
 #include "log.h"
@@ -142,7 +143,11 @@ AnnotationFile::LoadResult AnnotationFile::load( const QString& sidecarPath,
         }
 
         // The file speaks in 1-based line numbers, like every other tool
+#if QT_VERSION >= QT_VERSION_CHECK( 6, 0, 0 )
         const auto statedLine = fields.value( QLatin1String( "line" ) ).toInteger( 0 );
+#else
+        const auto statedLine = fields.value( QLatin1String( "line" ) ).toVariant().toLongLong();
+#endif
         if ( statedLine < 1 ) {
             LOG_WARNING << "Annotation sidecar: line " << statedLine << " is out of range";
             ++result.dropped;
