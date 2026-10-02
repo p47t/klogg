@@ -2,11 +2,11 @@ name: "Prepare windows packages"
 description: ""
 inputs:
   s3-key-id:
-    required: true
+    required: false
   s3-secret:
-    required: true
+    required: false
   s3-bucket:
-    required: true
+    required: false
 runs:
   using: "composite"
   steps:
