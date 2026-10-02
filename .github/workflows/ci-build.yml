@@ -28,13 +28,13 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/klogg-version
 
       - name: Save version 
         run: echo $KLOGG_VERSION > klogg_version.txt
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: klogg_version
           path: 'klogg_version.txt'
@@ -118,7 +118,7 @@ jobs:
 
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       #- uses: satackey/action-docker-layer-caching@v0.0.11
       #  # Ignore the failure of a step and avoid terminating the job.
@@ -136,7 +136,7 @@ jobs:
       - uses: ./.github/actions/docker-package
           
 # Final upload of all packages
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.config.artifacts_id }}
           path: '${{ env.KLOGG_BUILD_ROOT }}/packages/*'
@@ -149,7 +149,7 @@ jobs:
       matrix:
         config:
           - os: macos
-            os_version: 13
+            runner: macos-15-intel
             qt_version: 6.7.3
             qt_arch: clang_64
             qt_modules: qt5compat
@@ -157,7 +157,7 @@ jobs:
             artifacts_id: macos-intel-qt6
             cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=13.0
           - os: macos
-            os_version: 14
+            runner: macos-14
             qt_version: 6.7.3
             qt_arch: clang_64
             qt_modules: qt5compat
@@ -165,13 +165,17 @@ jobs:
             artifacts_id: macos-arm-qt6
             cmake_opts: -DKLOGG_OSX_DEPLOYMENT_TARGET=14.0
 
-    runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
+    runs-on: ${{ matrix.config.runner }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Xcode
         shell: sh
-        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+        run: |
+          if [ -d "/Applications/Xcode_15.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_15.2.app
+          fi
+          xcodebuild -version || true
 
 #Install build deps
       - name: Set brew env
@@ -197,7 +201,7 @@ jobs:
           notarization-team: ${{ secrets.NOTARIZATION_TEAM }}
           notarization-password: ${{ secrets.NOTARIZATION_PASSWORD }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.config.artifacts_id }}
           path: '${{ env.KLOGG_BUILD_ROOT }}/packages/*' 
@@ -229,19 +233,19 @@ jobs:
 
     runs-on: ${{ matrix.config.os }}-${{ matrix.config.os_version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Cache openssl
         id: cache-openssl
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}\openssl-1.1
-          key: OpensslCache-1-1-1w
+          key: OpensslCache-1-1-1n
 
       - name: Download openssl
         if: ${{ steps.cache-openssl.outputs.cache-hit != 'true' }} 
         run: |
-          Invoke-WebRequest -Uri "https://www.firedaemon.com/download-firedaemon-openssl-1.1.1-zip" -OutFile openssl.zip
+          Invoke-WebRequest -Uri "https://web.archive.org/web/20220506064907if_/https://mirror.firedaemon.com/OpenSSL/openssl-1.1.1n.zip" -OutFile openssl.zip
           7z x openssl.zip 
 
       - name: Set openssl paths
@@ -268,7 +272,7 @@ jobs:
           s3-bucket: ${{ secrets.WIN_CS_BUCKET }}
      
 # Final upload of all packages
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.config.artifacts_id }}
           path: '${{ env.KLOGG_BUILD_ROOT }}/packages/*'
